@@ -115,6 +115,11 @@ export function attachSocketServer(
         return next(connectError(error.message, error.code));
       }
       const { row, player } = auth.result!;
+      const rejected = sessionService.rejectSession(row);
+      if (rejected) {
+        const error = toApiError(rejected);
+        return next(connectError(error.message, error.code));
+      }
       socket.data = { sessionId: row.id, code: row.code, playerId: player.id, playerToken, connectedAt: clock().getTime() };
       handshakes.set(socket, auth.result!);
       next();

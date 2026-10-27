@@ -1,3 +1,4 @@
+import { DATA_VERSION } from "../engine/version";
 import type { GameModule } from "../games/gameModule";
 import { onPlayerRemoved, pocketLegionsActions } from "./pocketLegions.actions";
 import { project, PocketLegionsView } from "./pocketLegions.projection";
@@ -25,4 +26,7 @@ export const pocketLegionsModule: GameModule<PocketLegionsState, PocketLegionsSe
   onPlayerRemoved: (ctx, state, playerId) => onPlayerRemoved(ctx as Ctx, state, playerId),
   project: (state, viewerId, ctx) => project(state, viewerId, ctx as Ctx),
   getHistory: (state) => state.history,
+  rejectSession: (settings) =>
+    settings.dataVersion === DATA_VERSION ? null : { message: "The game was updated — start a new room", code: "outdated" },
+  publicInfo: (settings) => ({ mapId: settings.mapId, mode: settings.mode, budget: settings.budget }),
 };

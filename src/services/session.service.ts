@@ -133,6 +133,7 @@ export class SessionService {
       maxPlayers: row.state.settings.maxPlayers,
       joinable: !isSessionExpired(row, this.clock()) && getJoinBlocker(row) === null && playerCount < row.state.settings.maxPlayers,
       expiresAt: row.expiresAt,
+      ...this.deps.module.publicInfo?.(row.state.settings),
     });
   }
 
@@ -258,6 +259,10 @@ export class SessionService {
         return forwardFailure(actor);
       }
       actorId = actor.result!.id;
+      const rejected = this.rejectSession<SessionDraft>(row);
+      if (rejected) {
+        return rejected;
+      }
       const { module } = this.deps;
       const env: ActionContext = { actorId, now, rng: this.rng, module };
       const draft = toDraft(row);
@@ -301,6 +306,12 @@ export class SessionService {
 
     await this.publishChange(saved.result!, "state");
     return success(this.project(saved.result!, actorId!));
+  }
+
+  /** The module refuses this session (plan §8: `409 outdated` after a data change). */
+  rejectSession<T>(row: SessionRow): Result<T> | null {
+    const rejection = this.deps.module.rejectSession?.(row.state.settings);
+    return rejection ? failure(rejection.message, "conflict", rejection.code) : null;
   }
 
   /** Load → reduce → compare-and-swap, re-running the (pure) reducer when another write won. */

@@ -81,7 +81,8 @@ export interface SessionView<TGameView = unknown> {
   game: TGameView | null;
 }
 
-export interface SessionInfo {
+/** Plus the module's `publicInfo` fields. */
+export interface SessionInfo extends Record<string, unknown> {
   code: string;
   status: SessionStatus;
   requiresPassword: boolean;

@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import type { Result } from "../models/result";
+import type { ErrorCode, Result } from "../models/result";
 import type { PlayerRecord, SessionStatus } from "../models/session.model";
 import type { Rng } from "../utils/random";
 
@@ -36,6 +36,12 @@ export interface GameModule<TState, TSettings, TView> {
 
   /** Optional game-specific history for `GET /history`. */
   getHistory?(state: TState): unknown;
+
+  /** A session the module can no longer play (e.g. created with other game data): every action and socket handshake gets `409 code`. */
+  rejectSession?(settings: TSettings): { message: string; code: ErrorCode } | null;
+
+  /** Extra public fields for `GET /info` (no secrets: anyone with the code sees them). */
+  publicInfo?(settings: TSettings): Record<string, unknown>;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
