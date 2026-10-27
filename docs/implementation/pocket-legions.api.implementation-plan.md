@@ -88,7 +88,7 @@ src/game/     the GameModule: state machine, zod payload schemas, projection, ev
 - When a turn starts, the handler sets `battle.turnDeadline = ctx.now + settings.turnSeconds`. It is an ISO string in state, so it is deterministic in the view.
 - Any player may send `pocket-legions.claimTimeout`. The handler accepts it only if `ctx.now >= turnDeadline`, otherwise it returns `409 too-early`. It then puts the active player's first unactivated stack into **defend** and passes the turn. Because the version changes, a second claim fails with `conflict` and can be ignored.
 - Clients send the claim when their clock passes `turnDeadline + 1 s`. The server decides with its own clock, so a wrong client clock can only make a claim early (rejected) or late (harmless).
-- Consecutive timeouts per player are counted. **3 timeouts in a row (≈ 2.25 min at 45 s) = automatic surrender.** The design says "back within 2 minutes" (open question §12.1).
+- Consecutive timeouts per player are counted. **3 timeouts in a row (≈ 2.25 min at 45 s) = automatic surrender** (§12.1, design §3).
 
 ### 3.6 Data version policy
 - `settings.dataVersion` is fixed at create time from `DATA_VERSION`.
@@ -490,7 +490,7 @@ Each phase ends in a working, tested state. Phases 1–3 need no DB and no netwo
 ---
 
 ## 12. Decisions on the former open questions (2026-10-27)
-1. **Auto-surrender:** 3 timed-out turns in a row, as implemented (§3.5). The design doc still says "back within 2 minutes" and should be updated.
+1. **Auto-surrender:** 3 timed-out turns in a row, as implemented (§3.5). The design doc says the same since rev 56.
 2. **Supabase project:** the same project as sen-reveal. The owner created the §4.1 objects there.
 3. **Gear budget:** one budget shared by units and gear, with gear capped at 30% of it (`validateArmy`).
 4. **Balance deploys** end running games with `409 outdated` (§3.6). Accepted for now; deploy when nobody plays.
