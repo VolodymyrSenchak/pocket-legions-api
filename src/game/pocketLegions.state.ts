@@ -9,6 +9,7 @@ import type { CoreSettings } from "../models/session.model";
 import type { ErrorCode, ErrorStatus, Result } from "../models/result";
 
 export const GAME_TYPE = "pocket-legions";
+// TODO(plan §12.5): 3000 events ≈ 260 KB per row, above the 100 KB target; smaller cap or a separate log?
 export const HISTORY_LIMIT = 3000;
 /** Plan §3.5. TODO(plan §12.1): 3 timed-out turns in a row vs the design's "back within 2 minutes". */
 export const AUTO_SURRENDER_TIMEOUTS = 3;

@@ -8,9 +8,9 @@ Architecture copied from sen-reveal-api: Express + Socket.IO on Vercel, Supabase
 - Game design: [../design/pocket-legions.game-design.md](../design/pocket-legions.game-design.md)
 - Client: [../pocket-legions-app](../pocket-legions-app/README.md)
 
-**Status:** plan phases 0–3 are done: the scaffold, engine data and balance, the combat engine and the `pocket-legions` game module, all tested without a DB or network. Next: Phase 4 (the Supabase table and HTTP integration).
+**Status:** plan phases 0–6 are done in code: engine, game module, sessions over HTTP against Supabase, real-time and the client contract ([docs/implementation/pocket-legions.api-contract.md](docs/implementation/pocket-legions.api-contract.md)). Left for the owner: the Vercel project, its WAF rule and the deployment (Phase 7, see the plan).
 
-Open questions from plan §12 are left as `TODO(plan §12.x)` in the code; §12.2 (same Supabase project as sen-reveal or a new one) is a setup decision for Phase 4.
+Open questions from plan §12 are left as `TODO(plan §12.x)` in the code. The DB objects live in the same Supabase project as sen-reveal.
 
 ## Source of the infrastructure code
 
@@ -55,6 +55,7 @@ npm run build       # compile to dist/
 npm run typecheck   # tsc --noEmit, tests included
 npm test            # vitest (watch); npm run test:run for a single run
 npm run smoke:db    # checks the repository against the real Supabase DB (creates one row)
+npm run smoke:relay # checks the Supabase Realtime relay (no rows, no game data)
 ```
 
 Tests use an in-memory repository and bus, so they need no database or network.

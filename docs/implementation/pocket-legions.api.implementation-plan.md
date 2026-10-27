@@ -146,11 +146,13 @@ revoke execute on function public.pocket_legions_session_presence(uuid, uuid[], 
 ```
 
 Checklist:
-- [ ] table `pocket_legions_session` with the columns above
-- [ ] partial unique index on `code where archived = false`
-- [ ] RLS enabled, no policies
-- [ ] function `pocket_legions_session_presence(uuid, uuid[], boolean)`
-- [ ] Realtime enabled, no `realtime.messages` policy that lets `anon`/`authenticated` join `pocket-legions-session:*`
+- [x] table `pocket_legions_session` with the columns above
+- [x] partial unique index on `code where archived = false`
+- [x] RLS enabled, no policies
+- [x] function `pocket_legions_session_presence(uuid, uuid[], boolean)`
+- [x] Realtime enabled, no `realtime.messages` policy that lets `anon`/`authenticated` join `pocket-legions-session:*`
+
+Done by the owner (2026-10-27) in the same Supabase project as sen-reveal; `npm run smoke:db` and `npm run smoke:relay` pass against it.
 
 ### 4.2 `state` JSON shape (top level, as in SR §4.2)
 ```ts
@@ -403,7 +405,7 @@ Each phase ends in a working, tested state. Phases 1–3 need no DB and no netwo
 - [x] New repo. Copy the files marked `C`/`A` in §5 from sen-reveal-api `83a5261`. Rename the table, RPC and topic. Remove `games/` modules and the registry. Keep `gameModule.ts`.
 - [x] A tiny `test-game` module in tests (as SR Phase 3) so the copied lobby/session tests keep running.
 - [x] `README.md` with the source commit, env vars (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `CORS_ORIGINS`, `PORT`, `LOG_LEVEL`) and scripts.
-- [ ] Vercel project with Fluid compute on. Reuse sen-reveal's WebSocket spike result, or run it (SR Phase 0) if it is still open.
+- [ ] Vercel project with Fluid compute on (moved to Phase 7). Reuse sen-reveal's WebSocket spike result, or run it (SR Phase 0) if it is still open.
 - **Done when:** `npm run test:run` passes with the copied tests on the in-memory repo, and `npm run build` passes.
 - **Status (commit ceebe44):** done, except the Vercel project (not created yet). Differs from the plan:
   - no `gameType` anywhere; `createRuntime({ module })` takes the one module (tests inject `test-game`);
@@ -442,13 +444,15 @@ Each phase ends in a working, tested state. Phases 1–3 need no DB and no netwo
   - open questions §12.1, §12.3, §12.4 are `TODO(plan §12.x)` in the code.
 
 ### Phase 4 — Database and sessions over HTTP
-- [ ] **Prerequisite (owner):** DB objects from §4.1.
-- [ ] Copied repository against the real table; `npm run smoke:db`.
-- [ ] **Integration test** (supertest, in-memory repo, seeded rng): 2 players create/join → start → armies → deploy → battle to the end using `/actions` + `/state`. Simultaneous `submitArmy` from 4 players loses nothing.
+- [x] **Prerequisite (owner):** DB objects from §4.1.
+- [x] Copied repository against the real table; `npm run smoke:db`.
+- [x] **Integration test** (supertest, in-memory repo, seeded rng): 2 players create/join → start → armies → deploy → battle to the end using `/actions` + `/state`. Simultaneous `submitArmy` from 4 players loses nothing.
 - **Done when:** the integration test passes and the smoke script passes against Supabase.
 
+- **Status (commit 0e34527):** done. `smoke:db` passes against the real table (it leaves one row that expires in 24 h). Additions: `GameModule.rejectSession` gives `409 outdated` on every action, lobby ones included, and on the socket handshake (`/state` stays readable). `GameModule.publicInfo` adds `mapId`, `mode` and `budget` to `/info`. The integration test is `src/game/pocketLegions.integration.test.ts`.
+
 ### Phase 5 — Real-time
-- [ ] Copied `realtime/` with the renamed topic, and the copied integration tests adapted.
+- [x] Copied `realtime/` with the renamed topic, and the copied integration tests adapted.
 - **New tests** (two servers sharing an in-memory bus):
   - no payload to player B contains A's army before `battle`;
   - an `act` on server A reaches clients on server B with the events in order;
@@ -456,11 +460,18 @@ Each phase ends in a working, tested state. Phases 1–3 need no DB and no netwo
 - [ ] Manual Vercel preview test: 2 browsers play a full battle across at least one forced reconnect.
 - **Done when:** the tests pass and the preview battle survives reconnects.
 
+- **Status (commit 5286ee2):** done except the manual Vercel preview test (needs the Vercel project, Phase 7). The new tests are in `src/game/pocketLegions.realtime.test.ts`; the two-instance helper moved to `src/testing/cluster.ts`. A new `npm run smoke:relay` checks the real Supabase relay on `pocket-legions-session:<id>`. Its first run failed once with `MissingPartition` (Realtime had no `realtime.messages` partition yet in an idle project), then it passed three times in a row. The maintenance tick covers such a lost message.
+
 ### Phase 6 — Hardening and contract
-- [ ] WAF rule (SR Phase 6), in-app limits, socket payload guard, structured logs.
-- [ ] `docs/implementation/pocket-legions.api-contract.md`: endpoints, socket events, client rules (§9), and example `SessionView`s for army, deploy, battle (as the active and as a waiting player) and over.
+- [ ] WAF rule (SR Phase 6). *Owner, in the Vercel dashboard once the project exists.*
+- [x] In-app limits, socket payload guard, structured logs (copied from sen-reveal-api).
+- [x] `docs/implementation/pocket-legions.api-contract.md`: endpoints, socket events, client rules (§9), and example `SessionView`s for army, deploy, battle (as the active and as a waiting player) and over.
+
+- **Status:** done except the WAF rule. Measured on random battles: the largest stored state was 82 KB (845 history events, about 85 bytes each) and the largest view 24 KB. A long 4-player battle can pass the 100 KB per row target (§3.1, the SR §3.3 row) because of `history` (see §12.5).
 
 ### Phase 7 — Deployment
+- [ ] Vercel project with Fluid compute (moved here from Phase 0), and the sen-reveal WebSocket spike (still open in SR) run on it.
+- [ ] Decide how `dist/` reaches Vercel: commit it as sen-reveal does (`vercel.json` points at `dist/index.js`), or let Vercel run `npm run build`. It is git-ignored for now.
 - [ ] Env on Vercel. Function region = Supabase region. Add the client origin to `CORS_ORIGINS`.
 - [ ] Smoke test from the deployed client: a 3-player FFA on 3 phones, one on mobile data, one with WebSockets blocked (polling).
 - [ ] Review Hobby usage after real games. The quotas are shared with sen-reveal if they are per account.
@@ -480,3 +491,4 @@ Each phase ends in a working, tested state. Phases 1–3 need no DB and no netwo
 2. **Supabase project:** the same project as sen-reveal (saves a free project; the table names don't clash) or a new one.
 3. **Shared budget for gear** (design §2 comment): one 1000-point budget with a 30% gear cap (current) or a separate hero budget. This changes `validateArmy` only.
 4. **Balance deploys** end running games (§3.6). Acceptable for now?
+5. **State size vs. history.** `state.history` keeps up to 3000 events (about 85 bytes each), so a long battle can reach about 260 KB per row, above the 100 KB target in §3.1. Options: a smaller cap (for example 1000), shorter event keys, or the full log in a separate column or table. Until then the cap stays at 3000.
