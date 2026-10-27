@@ -1,0 +1,193 @@
+// Ported from design/data/gamedata.js. Unit costs come from design/generated/units.json
+// (the formula in balance.ts must reproduce them; see balance.test.ts).
+import type { HeroDef, RaceDef, UnitDef } from "../types";
+
+export const RACE_IDS = ["knights", "vampires", "barbarians", "elves", "dwarves", "demons"] as const;
+export type RaceId = (typeof RACE_IDS)[number];
+
+export const UNIT_IDS = [
+  "militia", "archer", "swordsman", "horseman", "crossbowman", "griffin", "monk", "paladin", "knight", "angel",
+  "skeleton", "skel_archer", "zombie", "bat", "ghost", "banshee", "vampire", "lich", "death_knight", "bone_dragon",
+  "goblin", "spear_gob", "wolf_rider", "orc", "shaman", "axe_thrower", "ogre", "thunderbird", "warlord", "cyclops",
+  "pixie", "elf_archer", "fencer", "dryad", "druid", "marksman", "pegasus", "unicorn", "treant", "green_dragon",
+  "miner", "dw_xbow", "shieldbearer", "bear_rider", "runekeeper", "thunderer", "berserker", "gyrocopter", "golem", "titan",
+  "imp", "hellhound", "horned", "firebrand", "succubus", "abyss_shade", "nightmare", "efreet", "pitlord", "archdevil",
+] as const;
+export type UnitId = (typeof UNIT_IDS)[number];
+
+export const HERO_ABILITY_IDS = ["heavenly_shield", "blood_ritual", "battle_cry", "earth_roots", "stone_wall", "hellfire"] as const;
+export type HeroAbilityId = (typeof HERO_ABILITY_IDS)[number];
+
+export const UNITS: Record<UnitId, UnitDef> = {
+  // Лицарі
+  militia: { id: "militia", raceId: "knights", tier: 1, name: "Ополченець", atk: 2, def: 3, dmg: [1, 2], hp: 7, spd: 4, fly: false, hits: 1, abilities: [], cost: 25 },
+  archer: { id: "archer", raceId: "knights", tier: 2, name: "Лучник", atk: 4, def: 2, dmg: [1, 3], hp: 7, spd: 4, fly: false, hits: 1, ranged: { range: 6, shots: 10 }, abilities: [], cost: 35 },
+  swordsman: { id: "swordsman", raceId: "knights", tier: 3, name: "Мечник", atk: 4, def: 7, dmg: [2, 3], hp: 13, spd: 4, fly: false, hits: 1, abilities: ["shield"], cost: 50 },
+  horseman: { id: "horseman", raceId: "knights", tier: 4, name: "Легкий вершник", atk: 6, def: 4, dmg: [2, 4], hp: 14, spd: 7, fly: false, hits: 1, abilities: ["charge"], cost: 65 },
+  crossbowman: { id: "crossbowman", raceId: "knights", tier: 5, name: "Арбалетник", atk: 7, def: 4, dmg: [3, 4], hp: 12, spd: 4, fly: false, hits: 1, ranged: { range: 7, shots: 8 }, abilities: ["piercing"], cost: 75 },
+  griffin: { id: "griffin", raceId: "knights", tier: 6, name: "Грифон", atk: 7, def: 6, dmg: [3, 5], hp: 22, spd: 7, fly: true, hits: 1, abilities: ["unlim_retal"], cost: 105 },
+  monk: { id: "monk", raceId: "knights", tier: 7, name: "Монах", atk: 8, def: 7, dmg: [4, 6], hp: 24, spd: 5, fly: false, hits: 1, ranged: { range: 6, shots: 6 }, abilities: ["heal"], cost: 145 },
+  paladin: { id: "paladin", raceId: "knights", tier: 8, name: "Паладин", atk: 11, def: 11, dmg: [6, 9], hp: 38, spd: 5, fly: false, hits: 1, abilities: ["holy"], cost: 180 },
+  knight: { id: "knight", raceId: "knights", tier: 9, name: "Лицар-кавалерист", atk: 13, def: 12, dmg: [7, 11], hp: 42, spd: 7, fly: false, hits: 1, abilities: ["charge"], cost: 255 },
+  angel: { id: "angel", raceId: "knights", tier: 10, name: "Архангел", atk: 16, def: 16, dmg: [8, 13], hp: 45, spd: 8, fly: true, hits: 1, abilities: ["resurrect"], cost: 415 },
+  // Вампіри
+  skeleton: { id: "skeleton", raceId: "vampires", tier: 1, name: "Скелет", atk: 2, def: 4, dmg: [1, 2], hp: 6, spd: 4, fly: false, hits: 1, abilities: ["bone"], cost: 25 },
+  skel_archer: { id: "skel_archer", raceId: "vampires", tier: 2, name: "Скелет-лучник", atk: 4, def: 2, dmg: [1, 3], hp: 6, spd: 4, fly: false, hits: 1, ranged: { range: 6, shots: 10 }, abilities: [], cost: 30 },
+  zombie: { id: "zombie", raceId: "vampires", tier: 3, name: "Зомбі", atk: 3, def: 5, dmg: [2, 3], hp: 15, spd: 3, fly: false, hits: 1, abilities: ["disease"], cost: 50 },
+  bat: { id: "bat", raceId: "vampires", tier: 4, name: "Кажан-кровопивця", atk: 5, def: 3, dmg: [2, 3], hp: 10, spd: 8, fly: true, hits: 1, abilities: ["no_retal"], cost: 60 },
+  ghost: { id: "ghost", raceId: "vampires", tier: 5, name: "Привид", atk: 6, def: 6, dmg: [2, 4], hp: 14, spd: 6, fly: true, hits: 1, abilities: ["evasion"], cost: 75 },
+  banshee: { id: "banshee", raceId: "vampires", tier: 6, name: "Банші", atk: 7, def: 6, dmg: [3, 5], hp: 20, spd: 5, fly: true, hits: 1, abilities: ["scream"], cost: 95 },
+  vampire: { id: "vampire", raceId: "vampires", tier: 7, name: "Вампір", atk: 9, def: 8, dmg: [4, 6], hp: 28, spd: 6, fly: true, hits: 1, abilities: ["lifesteal", "no_retal"], cost: 185 },
+  lich: { id: "lich", raceId: "vampires", tier: 8, name: "Лич", atk: 10, def: 8, dmg: [5, 8], hp: 28, spd: 4, fly: false, hits: 1, ranged: { range: 6, shots: 6 }, abilities: ["aoe_cloud"], cost: 180 },
+  death_knight: { id: "death_knight", raceId: "vampires", tier: 9, name: "Чорний лицар", atk: 13, def: 11, dmg: [7, 11], hp: 45, spd: 6, fly: false, hits: 1, abilities: ["deathblow"], cost: 250 },
+  bone_dragon: { id: "bone_dragon", raceId: "vampires", tier: 10, name: "Кістяний дракон", atk: 16, def: 14, dmg: [10, 15], hp: 56, spd: 7, fly: true, hits: 1, abilities: ["fear"], cost: 405 },
+  // Варвари
+  goblin: { id: "goblin", raceId: "barbarians", tier: 1, name: "Гоблін", atk: 3, def: 1, dmg: [1, 2], hp: 5, spd: 5, fly: false, hits: 1, abilities: [], cost: 20 },
+  spear_gob: { id: "spear_gob", raceId: "barbarians", tier: 2, name: "Гоблін-метальник", atk: 4, def: 2, dmg: [1, 3], hp: 6, spd: 5, fly: false, hits: 1, ranged: { range: 5, shots: 6 }, abilities: [], cost: 30 },
+  wolf_rider: { id: "wolf_rider", raceId: "barbarians", tier: 3, name: "Вовчий вершник", atk: 6, def: 2, dmg: [2, 4], hp: 11, spd: 8, fly: false, hits: 1, abilities: ["hit_and_run"], cost: 55 },
+  orc: { id: "orc", raceId: "barbarians", tier: 4, name: "Орк-рубака", atk: 7, def: 3, dmg: [2, 5], hp: 16, spd: 5, fly: false, hits: 1, abilities: [], cost: 60 },
+  shaman: { id: "shaman", raceId: "barbarians", tier: 5, name: "Шаман", atk: 6, def: 4, dmg: [2, 4], hp: 14, spd: 5, fly: false, hits: 1, ranged: { range: 5, shots: 4 }, abilities: ["war_drum"], cost: 65 },
+  axe_thrower: { id: "axe_thrower", raceId: "barbarians", tier: 6, name: "Орк-сокирник", atk: 9, def: 4, dmg: [4, 6], hp: 20, spd: 5, fly: false, hits: 1, ranged: { range: 5, shots: 6 }, abilities: ["no_melee_pen"], cost: 110 },
+  ogre: { id: "ogre", raceId: "barbarians", tier: 7, name: "Огр", atk: 11, def: 7, dmg: [5, 8], hp: 33, spd: 4, fly: false, hits: 1, abilities: ["stun"], cost: 150 },
+  thunderbird: { id: "thunderbird", raceId: "barbarians", tier: 8, name: "Птах грому", atk: 11, def: 6, dmg: [5, 8], hp: 27, spd: 9, fly: true, hits: 1, abilities: ["lightning"], cost: 175 },
+  warlord: { id: "warlord", raceId: "barbarians", tier: 9, name: "Вождь-берсерк", atk: 14, def: 8, dmg: [8, 11], hp: 41, spd: 6, fly: false, hits: 1, abilities: ["whirlwind"], cost: 255 },
+  cyclops: { id: "cyclops", raceId: "barbarians", tier: 10, name: "Циклоп", atk: 17, def: 12, dmg: [10, 14], hp: 52, spd: 5, fly: false, hits: 1, ranged: { range: 6, shots: 4 }, abilities: ["boulder"], cost: 420 },
+  // Ельфи
+  pixie: { id: "pixie", raceId: "elves", tier: 1, name: "Фея", atk: 3, def: 2, dmg: [1, 2], hp: 5, spd: 7, fly: true, hits: 1, abilities: ["no_retal"], cost: 30 },
+  elf_archer: { id: "elf_archer", raceId: "elves", tier: 2, name: "Лісовий лучник", atk: 5, def: 2, dmg: [1, 3], hp: 7, spd: 5, fly: false, hits: 1, ranged: { range: 7, shots: 10 }, abilities: [], cost: 35 },
+  fencer: { id: "fencer", raceId: "elves", tier: 3, name: "Лісовий фехтувальник", atk: 5, def: 3, dmg: [2, 3], hp: 11, spd: 6, fly: false, hits: 2, abilities: ["double_strike"], cost: 55 },
+  dryad: { id: "dryad", raceId: "elves", tier: 4, name: "Дріада", atk: 4, def: 6, dmg: [2, 3], hp: 15, spd: 4, fly: false, hits: 1, abilities: ["heal"], cost: 60 },
+  druid: { id: "druid", raceId: "elves", tier: 5, name: "Друїд", atk: 7, def: 5, dmg: [3, 5], hp: 15, spd: 5, fly: false, hits: 1, ranged: { range: 6, shots: 6 }, abilities: ["magic_shot"], cost: 90 },
+  marksman: { id: "marksman", raceId: "elves", tier: 6, name: "Майстер-лучник", atk: 9, def: 5, dmg: [3, 5], hp: 18, spd: 5, fly: false, hits: 2, ranged: { range: 8, shots: 12 }, abilities: ["double_shot"], cost: 135 },
+  pegasus: { id: "pegasus", raceId: "elves", tier: 7, name: "Пегас", atk: 9, def: 7, dmg: [4, 7], hp: 26, spd: 9, fly: true, hits: 1, abilities: ["evasion"], cost: 165 },
+  unicorn: { id: "unicorn", raceId: "elves", tier: 8, name: "Єдиноріг", atk: 11, def: 10, dmg: [6, 9], hp: 36, spd: 7, fly: false, hits: 1, abilities: ["blind"], cost: 195 },
+  treant: { id: "treant", raceId: "elves", tier: 9, name: "Древень", atk: 9, def: 15, dmg: [6, 10], hp: 65, spd: 3, fly: false, hits: 1, abilities: ["entangle", "unlim_retal"], cost: 265 },
+  green_dragon: { id: "green_dragon", raceId: "elves", tier: 10, name: "Зелений дракон", atk: 16, def: 15, dmg: [10, 14], hp: 51, spd: 8, fly: true, hits: 1, abilities: ["breath"], cost: 410 },
+  // Гноми
+  miner: { id: "miner", raceId: "dwarves", tier: 1, name: "Гном-рудокоп", atk: 3, def: 4, dmg: [1, 2], hp: 8, spd: 3, fly: false, hits: 1, abilities: [], cost: 25 },
+  dw_xbow: { id: "dw_xbow", raceId: "dwarves", tier: 2, name: "Гном-арбалетник", atk: 4, def: 4, dmg: [1, 3], hp: 8, spd: 3, fly: false, hits: 1, ranged: { range: 6, shots: 10 }, abilities: [], cost: 35 },
+  shieldbearer: { id: "shieldbearer", raceId: "dwarves", tier: 3, name: "Щитоносець", atk: 4, def: 9, dmg: [1, 3], hp: 16, spd: 3, fly: false, hits: 1, abilities: ["shield"], cost: 50 },
+  bear_rider: { id: "bear_rider", raceId: "dwarves", tier: 4, name: "Ведмежий вершник", atk: 7, def: 6, dmg: [3, 5], hp: 20, spd: 6, fly: false, hits: 1, abilities: ["maim"], cost: 85 },
+  runekeeper: { id: "runekeeper", raceId: "dwarves", tier: 5, name: "Рунознавець", atk: 6, def: 6, dmg: [3, 4], hp: 16, spd: 4, fly: false, hits: 1, ranged: { range: 6, shots: 5 }, abilities: ["rune_shield"], cost: 80 },
+  thunderer: { id: "thunderer", raceId: "dwarves", tier: 6, name: "Гном-громобій", atk: 10, def: 5, dmg: [4, 7], hp: 18, spd: 3, fly: false, hits: 1, ranged: { range: 8, shots: 5 }, abilities: ["piercing"], cost: 110 },
+  berserker: { id: "berserker", raceId: "dwarves", tier: 7, name: "Молотобоєць", atk: 10, def: 8, dmg: [5, 7], hp: 30, spd: 4, fly: false, hits: 1, abilities: ["rage"], cost: 145 },
+  gyrocopter: { id: "gyrocopter", raceId: "dwarves", tier: 8, name: "Гірокоптер", atk: 9, def: 7, dmg: [5, 7], hp: 26, spd: 8, fly: true, hits: 1, abilities: ["bombard"], cost: 175 },
+  golem: { id: "golem", raceId: "dwarves", tier: 9, name: "Залізний голем", atk: 10, def: 16, dmg: [6, 10], hp: 64, spd: 3, fly: false, hits: 1, abilities: ["magic_immune", "unlim_retal"], cost: 265 },
+  titan: { id: "titan", raceId: "dwarves", tier: 10, name: "Рунний титан", atk: 17, def: 17, dmg: [11, 15], hp: 62, spd: 5, fly: false, hits: 1, abilities: ["thunderclap"], cost: 420 },
+  // Демони
+  imp: { id: "imp", raceId: "demons", tier: 1, name: "Біс", atk: 3, def: 2, dmg: [1, 2], hp: 6, spd: 6, fly: false, hits: 1, abilities: [], cost: 25 },
+  hellhound: { id: "hellhound", raceId: "demons", tier: 2, name: "Пекельний гончак", atk: 5, def: 2, dmg: [2, 3], hp: 10, spd: 8, fly: false, hits: 1, abilities: ["no_retal"], cost: 55 },
+  horned: { id: "horned", raceId: "demons", tier: 3, name: "Рогатий демон", atk: 5, def: 5, dmg: [2, 4], hp: 15, spd: 5, fly: false, hits: 1, abilities: [], cost: 55 },
+  firebrand: { id: "firebrand", raceId: "demons", tier: 4, name: "Палій", atk: 6, def: 4, dmg: [2, 4], hp: 12, spd: 4, fly: false, hits: 1, ranged: { range: 6, shots: 6 }, abilities: ["aoe_cloud"], cost: 70 },
+  succubus: { id: "succubus", raceId: "demons", tier: 5, name: "Суккуба", atk: 8, def: 5, dmg: [3, 5], hp: 17, spd: 6, fly: false, hits: 1, ranged: { range: 6, shots: 8 }, abilities: ["chain_shot"], cost: 105 },
+  abyss_shade: { id: "abyss_shade", raceId: "demons", tier: 6, name: "Тінь Безодні", atk: 9, def: 7, dmg: [4, 6], hp: 24, spd: 5, fly: false, hits: 1, abilities: ["teleport"], cost: 110 },
+  nightmare: { id: "nightmare", raceId: "demons", tier: 7, name: "Кошмар", atk: 11, def: 7, dmg: [5, 8], hp: 32, spd: 8, fly: false, hits: 1, abilities: ["fear"], cost: 170 },
+  efreet: { id: "efreet", raceId: "demons", tier: 8, name: "Ефрит", atk: 11, def: 9, dmg: [5, 8], hp: 31, spd: 8, fly: true, hits: 1, abilities: ["fire_shield"], cost: 190 },
+  pitlord: { id: "pitlord", raceId: "demons", tier: 9, name: "Володар Безодні", atk: 14, def: 12, dmg: [8, 12], hp: 46, spd: 5, fly: false, hits: 1, abilities: ["burn"], cost: 265 },
+  archdevil: { id: "archdevil", raceId: "demons", tier: 10, name: "Архідемон", atk: 17, def: 15, dmg: [10, 14], hp: 54, spd: 7, fly: false, hits: 1, abilities: ["teleport", "fear"], cost: 405 },
+};
+
+export const RACES: Record<RaceId, RaceDef> = {
+  knights: {
+    id: "knights",
+    name: "Лицарі",
+    fullName: "Орден Світанку",
+    lore: "Королівство людей: дисципліна, броня і віра. Сильні в обороні та контратаці.",
+    trait: { id: "formation", name: "Стрій", desc: "Загін, поруч із яким стоїть інший союзний загін, отримує +2 захисту." },
+    hero: {
+      id: "edwin",
+      name: "Сер Едвін Світлий",
+      atk: 1,
+      def: 3,
+      luck: 0,
+      morale: 1,
+      ability: { id: "heavenly_shield", name: "Небесний щит", desc: "Союзний загін отримує на 50% менше шкоди до кінця раунду." },
+    },
+    units: ["militia", "archer", "swordsman", "horseman", "crossbowman", "griffin", "monk", "paladin", "knight", "angel"],
+  },
+  vampires: {
+    id: "vampires",
+    name: "Вампіри",
+    fullName: "Дім Нічної Крові",
+    lore: "Нежить під владою вампірської знаті. Не знають страху, живуть за рахунок чужої крові.",
+    trait: { id: "undead", name: "Нежить і Некромантія", desc: "Мораль завжди 0, імунітет до страху, хвороби й осліплення. У кінці раунду 15% HP загиблих за раунд ворожих юнітів повертаються скелетами у ваш загін скелетів (якщо він є)." },
+    hero: {
+      id: "morvena",
+      name: "Графиня Морвена",
+      atk: 2,
+      def: 2,
+      luck: 1,
+      morale: 0,
+      ability: { id: "blood_ritual", name: "Кривавий ритуал", desc: "Ворожий загін отримує 25 шкоди (ігнорує захист), ваш загін лікується на 25 HP." },
+    },
+    units: ["skeleton", "skel_archer", "zombie", "bat", "ghost", "banshee", "vampire", "lich", "death_knight", "bone_dragon"],
+  },
+  barbarians: {
+    id: "barbarians",
+    name: "Варвари",
+    fullName: "Орда Кривого Ікла",
+    lore: "Орки, гобліни та огри зі степів. Багато шкоди, мало броні, бій на випередження.",
+    trait: { id: "fury", name: "Лють", desc: "За кожного втраченого юніта загін отримує +1 атаки (до +4) до кінця бою." },
+    hero: {
+      id: "grok",
+      name: "Ґрок Кривоікл",
+      atk: 4,
+      def: 0,
+      luck: 0,
+      morale: 1,
+      ability: { id: "battle_cry", name: "Бойовий клич", desc: "Усі ваші загони завдають +25% шкоди до кінця раунду." },
+    },
+    units: ["goblin", "spear_gob", "wolf_rider", "orc", "shaman", "axe_thrower", "ogre", "thunderbird", "warlord", "cyclops"],
+  },
+  elves: {
+    id: "elves",
+    name: "Ельфи",
+    fullName: "Лісовий Союз",
+    lore: "Ельфи та створіння лісу. Найкращі стрільці, швидкі й вертляві, але крихкі.",
+    trait: { id: "forest_eye", name: "Око лісу", desc: "Стрільці мають +1 дальність і +1 удачу." },
+    hero: {
+      id: "liriel",
+      name: "Ліріель Зелений Лист",
+      atk: 2,
+      def: 1,
+      luck: 1,
+      morale: 1,
+      ability: { id: "earth_roots", name: "Коріння землі", desc: "Ворожий загін отримує 15 шкоди і не може рухатися до кінця своєї наступної активації." },
+    },
+    units: ["pixie", "elf_archer", "fencer", "dryad", "druid", "marksman", "pegasus", "unicorn", "treant", "green_dragon"],
+  },
+  dwarves: {
+    id: "dwarves",
+    name: "Гноми",
+    fullName: "Клани Залізної Гори",
+    lore: "Підгірні клани ковалів і рунників. Повільні, але найміцніші, з бронею та порохом.",
+    trait: { id: "stone_skin", name: "Кам'яна шкіра", desc: "−25% шкоди від умінь героїв і магічних здібностей. Дія «Оборона» дає +50% захисту замість +30%." },
+    hero: {
+      id: "brokar",
+      name: "Брокар Залізнобородий",
+      atk: 1,
+      def: 4,
+      luck: 0,
+      morale: 0,
+      ability: { id: "stone_wall", name: "Кам'яна стіна", desc: "Ставить 3 клітинки кам'яної стіни в лінію на вільних клітинках на 3 раунди." },
+    },
+    units: ["miner", "dw_xbow", "shieldbearer", "bear_rider", "runekeeper", "thunderer", "berserker", "gyrocopter", "golem", "titan"],
+  },
+  demons: {
+    id: "demons",
+    name: "Демони",
+    fullName: "Легіон Безодні",
+    lore: "Породження Безодні. Хаос, вогонь і телепорти: непередбачувані й небезпечні.",
+    trait: { id: "chaos", name: "Хаос", desc: "Усі загони мають +1 удачу. Демонам не загрожує негативна удача." },
+    hero: {
+      id: "vaalor",
+      name: "Ваалор Палаючий",
+      atk: 3,
+      def: 1,
+      luck: 1,
+      morale: 0,
+      ability: { id: "hellfire", name: "Пекельний вогонь", desc: "20 шкоди всім загонам у квадраті 3×3 (включно з вашими), ігнорує захист." },
+    },
+    units: ["imp", "hellhound", "horned", "firebrand", "succubus", "abyss_shade", "nightmare", "efreet", "pitlord", "archdevil"],
+  },
+};
