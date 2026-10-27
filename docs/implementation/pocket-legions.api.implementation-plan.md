@@ -415,7 +415,7 @@ Each phase ends in a working, tested state. Phases 1–3 need no DB and no netwo
   - `GameModule.allowJoinInProgress?: boolean` pins the core setting to false; a join after start returns `409 session-started`;
   - `Result.errorReason` / `ApiError.reason` carry the finer reason of `invalid-army`, `invalid-deploy` and `illegal-action`;
   - `@types/express-serve-static-core` is pinned to `5.0.6`, so the copied routes compile unchanged;
-  - `dist/` is git-ignored (sen-reveal commits it for `vercel.json`); to decide in Phase 7.
+  - `dist/` was git-ignored at first; it is committed since §12.8.
 
 ### Phase 1 — Engine data, balance and maps
 - [x] `engine/data/*` ported from `design/data`. `engine/version.ts`.
@@ -474,7 +474,7 @@ Each phase ends in a working, tested state. Phases 1–3 need no DB and no netwo
 
 ### Phase 7 — Deployment
 - [ ] Vercel project with Fluid compute (moved here from Phase 0), and the sen-reveal WebSocket spike (still open in SR) run on it.
-- [ ] Decide how `dist/` reaches Vercel: commit it as sen-reveal does (`vercel.json` points at `dist/index.js`), or let Vercel run `npm run build`. It is git-ignored for now.
+- [x] `dist/` is committed, as in sen-reveal (`vercel.json` deploys `dist/index.js`); rebuild and commit it with every `src/` change (§12.8).
 - [ ] Env on Vercel. Function region = Supabase region. Add the client origin to `CORS_ORIGINS`.
 - [ ] Smoke test from the deployed client: a 3-player FFA on 3 phones, one on mobile data, one with WebSockets blocked (polling).
 - [ ] Review Hobby usage after real games. The quotas are shared with sen-reveal if they are per account.
@@ -497,3 +497,17 @@ Each phase ends in a working, tested state. Phases 1–3 need no DB and no netwo
 5. **History size:** `state.history` stays capped at 3000 events (up to ≈ 260 KB per row in a very long battle), above the 100 KB target in §3.1. Accepted.
 6. **Rematch** (client plan §15.2): in the same room. `pocket-legions.rematch` (host, phase `over`) goes back to `army` with the same seats, races and armies (not ready). So the end of a battle no longer finishes the session: it stays `in_progress` in phase `over` until the host ends it, a rematch starts, or fewer than 2 players are left.
 7. **Lobby settings** (client plan §15.3): the host may change them before the start with `lobby.updateSettings` (any subset of the create settings, validated the same way; `maxPlayers` can't drop below the players already in).
+8. **`dist/` on Vercel:** committed, as in sen-reveal.
+9. **Rule interpretations** where the design is silent: accepted as implemented, and written into the design doc (§3, "Уточнення правил"). Playtests may change them:
+   - magical for stone skin and magic immunity = the druid's magic shot, the lich/firebrand cloud splash, the thunderbird's bolt and every hero ability;
+   - heal, blood ritual and the ring of blood heal only the top unit; lifesteal and resurrection revive up to the starting count;
+   - stun, fear and blind take the current activation if the stack hasn't acted this round, else its first one next round;
+   - splash hits (whirlwind, boulder, cloud, breath) deal full damage, without luck, on-hit effects or retaliation; thunderclap and chain shot 50%;
+   - the mantle makes the stone wall last 4 rounds instead of 3;
+   - 2 vs 2: turns alternate between the teams; team 0 deploys in the left corners, team 1 in the right ones;
+   - champion cap max(1, floor(2 × budget / 1000)) units; two equal rings are allowed; all gear becomes public when the battle starts.
+
+## 13. Still open
+1. **Timer before the battle.** The design gives 60 s for the deployment (§2); the API has no timer in the army and deploy phases, so one player can hold everyone up until the host kicks them. Options: a 60 s deploy timer with server auto-placement (claimed like `claimTimeout`), plus or minus a timer on the army phase; or no timer and a design fix. No decision yet; nothing implemented.
+2. **Room rules the host can change.** The design says the host can change all budget rules (§2: gear share, stack limit, stacks per unit type, champions); the API lets the host pick only the budget (500–2000), and the rest scales with it. No decision yet; nothing implemented.
+3. **Vercel Hobby quotas**: check whether they are per account (shared with sen-reveal). The owner checks this in the Vercel account.
