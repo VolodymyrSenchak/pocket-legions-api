@@ -1,0 +1,46 @@
+{
+  "name": "pocket-legions-api",
+  "version": "1.0.0",
+  "description": "Backend for Pocket Legions: lobby, sessions and the server-side battle engine",
+  "private": true,
+  "main": "dist/index.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "nodemon src/index.ts",
+    "build": "rimraf dist && tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "smoke:db": "ts-node scripts/repositorySmoke.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.116.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.7.0",
+    "socket.io": "^4.8.3",
+    "zod": "^4.6.4"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.14.0",
+    "@types/supertest": "^7.2.1",
+    "nodemon": "^3.1.9",
+    "rimraf": "^6.0.1",
+    "socket.io-client": "^4.8.3",
+    "supertest": "^7.2.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3",
+    "vitest": "^5.0.0"
+  },
+  "overrides": {
+    "@types/express-serve-static-core": "5.0.6"
+  }
+}
