@@ -508,6 +508,8 @@ Each phase ends in a working, tested state. Phases 1–3 need no DB and no netwo
    - champion cap max(1, floor(2 × budget / 1000)) units; two equal rings are allowed; all gear becomes public when the battle starts.
 
 ## 13. Still open
+The owner will come back to 1 and 2 after the first playtests (2026-10-27).
+
 1. **Timer before the battle.** The design gives 60 s for the deployment (§2); the API has no timer in the army and deploy phases, so one player can hold everyone up until the host kicks them. Options: a 60 s deploy timer with server auto-placement (claimed like `claimTimeout`), plus or minus a timer on the army phase; or no timer and a design fix. No decision yet; nothing implemented.
 2. **Room rules the host can change.** The design says the host can change all budget rules (§2: gear share, stack limit, stacks per unit type, champions); the API lets the host pick only the budget (500–2000), and the rest scales with it. No decision yet; nothing implemented.
 3. **Vercel Hobby quotas**: check whether they are per account (shared with sen-reveal). The owner checks this in the Vercel account.
