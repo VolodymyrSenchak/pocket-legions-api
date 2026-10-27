@@ -22,7 +22,7 @@ export class GameDriver {
   readonly settings: Settings;
 
   constructor(
-    readonly players: string[],
+    public players: string[],
     settings: Partial<PocketLegionsSettings> = {},
     readonly rng: Rng = createSeededRng(1),
     readonly host = players[0]
@@ -77,6 +77,7 @@ export class GameDriver {
   remove(playerId: string): void {
     const remaining = this.players.filter((id) => id !== playerId);
     const transition = pocketLegionsModule.onPlayerRemoved!(this.ctx(remaining[0] ?? playerId, remaining), this.state, playerId);
+    this.players = remaining;
     this.state = transition.state;
     this.finished ||= Boolean(transition.finished);
   }

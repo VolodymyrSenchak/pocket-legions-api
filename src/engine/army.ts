@@ -59,7 +59,7 @@ export function armyPoints(army: Army, budget: number): { unitPoints: number; ge
 
 /**
  * Plan §6.7. Units, gear and the budget are checked in this order; the first problem wins.
- * TODO(plan §12.3): one shared budget with a 30% gear cap (as now) or a separate hero budget — only this function changes.
+ * Plan §12.3: one budget shared by units and gear, with gear capped at 30%.
  */
 export function validateArmy(army: Army, raceId: RaceId, rules: ArmyRules): ArmyCheck {
   if (army.stacks.length === 0) return { ok: false, reason: "no-stacks" };

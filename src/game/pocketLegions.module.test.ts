@@ -213,7 +213,7 @@ describe("pocket-legions module", () => {
         game.act("ann", "claimTimeout");
       }
       expect(game.state.phase).toBe("over");
-      expect(game.finished).toBe(true);
+      expect(game.finished).toBe(false);
       expect(game.state.result!.reason).toBe("surrender");
       expect(game.state.history.some((event) => event.type === "surrendered" && event.reason === "timeout")).toBe(true);
     });
@@ -235,7 +235,7 @@ describe("pocket-legions module", () => {
       const game = toBattle(twoPlayers());
       game.act("ben", "surrender");
       expect(game.state.result).toEqual({ winnerSeats: [0], reason: "surrender" });
-      expect(game.finished).toBe(true);
+      expect(game.finished).toBe(false);
       expect(game.tryAct("ann", "act", { stackId: "s0_0", kind: "defend" })).toMatchObject({ errorStatus: "conflict" });
     });
 
@@ -252,7 +252,7 @@ describe("pocket-legions module", () => {
       let turns = 0;
       while (game.randomTurn()) turns++;
       expect(game.state.phase).toBe("over");
-      expect(game.finished).toBe(true);
+      expect(game.finished).toBe(false);
       expect(game.state.result!.winnerSeats.length).toBeGreaterThan(0);
       expect(turns).toBeGreaterThan(2);
       expect(game.state.history.at(-1)!.type).toBe("battleOver");
@@ -268,6 +268,35 @@ describe("pocket-legions module", () => {
       }
       expect(game.state.phase).toBe("over");
       expect([[0, 2], [1, 3], [0, 1, 2, 3]]).toContainEqual(game.state.result!.winnerSeats);
+    });
+  });
+
+  describe("rematch (client plan §15.2)", () => {
+    it("the host restarts the army phase in the same room with the same races and armies", () => {
+      const game = toBattle(twoPlayers());
+      expect(game.tryAct("ann", "rematch")).toMatchObject({ errorStatus: "conflict" });
+      game.act("ben", "surrender");
+      expect(game.tryAct("ben", "rematch")).toMatchObject({ errorStatus: "forbidden" });
+      game.act("ann", "rematch");
+      expect(game.state).toMatchObject({ phase: "army", battle: null, result: null, history: [] });
+      expect(game.state.seats.map((seat) => [seat.raceId, seat.armyReady, seat.eliminated, seat.deployment])).toEqual([
+        ["knights", false, false, null],
+        ["barbarians", false, false, null],
+      ]);
+      expect(game.view("ann").mine!.army).toEqual(KNIGHTS_ARMY);
+      // one tap: resubmit the kept army
+      game.act("ann", "submitArmy", game.view("ann").mine!.army);
+      game.act("ben", "submitArmy", game.view("ben").mine!.army);
+      expect(game.state.phase).toBe("deploy");
+    });
+
+    it("refuses when the remaining players can't start on this map", () => {
+      const game = new GameDriver(["a", "b", "c", "d"], { mode: "teams", mapId: "river" }, createSeededRng(2));
+      game.randomArmies();
+      game.randomDeployments();
+      game.remove("d");
+      while (game.state.phase === "battle") game.act(game.playerOfSeat(game.state.battle!.activeSeat), "surrender");
+      expect(game.tryAct("a", "rematch")).toMatchObject({ errorStatus: "conflict", error: expect.stringMatching(/new room/) });
     });
   });
 
@@ -318,6 +347,15 @@ describe("pocket-legions module", () => {
       const next = game.state.seats.find((candidate) => !candidate.eliminated)!;
       game.remove(next.playerId);
       expect(game.state.phase).toBe("over");
+      expect(game.finished).toBe(false);
+    });
+
+    it("over: the room closes when fewer than 2 players are left for a rematch", () => {
+      const game = toBattle(twoPlayers());
+      game.act("ben", "surrender");
+      expect(game.finished).toBe(false);
+      game.remove("ben");
+      expect(game.state.seats.map((seat) => seat.playerId)).toEqual(["ann"]);
       expect(game.finished).toBe(true);
     });
   });

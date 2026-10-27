@@ -64,7 +64,8 @@ describe("pocket-legions over HTTP", () => {
       expect(seqs.at(-1)!).toBeGreaterThan(lastSeq);
       lastSeq = seqs.at(-1)!;
     }
-    expect(view.status).toBe("finished");
+    // the room stays open for a rematch
+    expect(view.status).toBe("in_progress");
     expect(gameOf(view).phase).toBe("over");
     expect(gameOf(view).result!.winnerSeats.length).toBeGreaterThan(0);
 
@@ -73,6 +74,26 @@ describe("pocket-legions over HTTP", () => {
     expect(history.body[0].type).toBe("battleStarted");
     expect(history.body.at(-1).type).toBe("battleOver");
     expect((await h.api.action(players[0], "pocket-legions.surrender")).status).toBe(409);
+
+    view = await h.api.act(players[0], "pocket-legions.rematch");
+    expect(gameOf(view).phase).toBe("army");
+    expect(gameOf(view).mine!.army).not.toBeNull();
+    expect((await h.api.act(players[0], "lobby.end")).status).toBe("finished");
+  });
+
+  it("lobby.updateSettings: the host changes the map before the start (client plan §15.3)", async () => {
+    const h = createHttpHarness({ module: pocketLegionsModule });
+    const host = await h.api.createPlayer("Ann", { settings: { mapId: "arena" } });
+    const ben = await h.api.joinPlayer(host.code, "Ben");
+    await h.api.joinPlayer(host.code, "Cid");
+    expect((await h.api.action(ben, "lobby.updateSettings", { mapId: "river" })).status).toBe(403);
+    expect((await h.api.action(host, "lobby.updateSettings", { budget: 750 })).status).toBe(400);
+    expect((await h.api.action(host, "lobby.updateSettings", { maxPlayers: 2 })).status).toBe(409);
+    const view = await h.api.act(host, "lobby.updateSettings", { mapId: "village", budget: 1500 });
+    expect(view.settings).toMatchObject({ mapId: "village", budget: 1500, mode: "ffa", turnSeconds: 45, maxPlayers: 4, allowJoinInProgress: false });
+    expect((await h.api.info(host.code)).body).toMatchObject({ mapId: "village", budget: 1500 });
+    await h.api.act(host, "lobby.start");
+    expect((await h.api.action(host, "lobby.updateSettings", { mapId: "arena" })).status).toBe(409);
   });
 
   it("4 simultaneous submitArmy calls with write conflicts lose nothing", async () => {

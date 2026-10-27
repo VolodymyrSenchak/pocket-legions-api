@@ -337,8 +337,11 @@ interface BattleState {
 | `heroAbility` | battle | the active seat, before `act` | `{ target?, cell?, cells? }` | Uses, cooldown and target checks → `illegal-action` |
 | `claimTimeout` | battle | any seat | `{}` | §3.5. `too-early` before the deadline |
 | `surrender` | battle | any seat | `{}` | Eliminates the seat. May end the battle |
+| `rematch` | over | host | `{}` | Back to `army` with the same seats, races and armies (not ready); seats of players who left are dropped. `409` if the rest can't start on this map (§12.6) |
 
-`lobby.start` (from the lobby) creates the initial state: phase `army`, seats in join order, all `raceId` null.
+`lobby.start` (from the lobby) creates the initial state: phase `army`, seats in join order, all `raceId` null. Before it, the host can change settings with `lobby.updateSettings` (§12.7).
+
+The end of a battle moves to phase `over` but keeps the session `in_progress`, so the room can play a rematch (§12.6).
 
 ### 7.4 Roster hooks
 - `onPlayerJoined` is never called after start (`allowJoinInProgress: false`).
@@ -362,7 +365,7 @@ interface BattleState {
     } | null
     ```
     `preview = { dmg: [min, max], kills: [min, max] }`.
-- **Over:** `result` plus the final stacks.
+- **Over:** `result` plus the final stacks. In `over`, a removed player's seat is dropped; with fewer than 2 seats left the session finishes.
 - **No time-derived fields.** There is no `canClaimTimeout`: it would change without a state change and break ETag. The client compares `turnDeadline` with its own clock.
 - Arrays, not maps, ordered by seat/stack id, so the JSON is deterministic (SR §8 deviation note).
 
@@ -441,7 +444,7 @@ Each phase ends in a working, tested state. Phases 1–3 need no DB and no netwo
   - `heroAbility` also takes `ally` (the blood ritual heal target), and `hints.hero` has `allies`;
   - player counts per map/mode are checked at `lobby.start`; in 2 vs 2 each team needs 1–2 players before `submitArmy`;
   - leaving during deploy clears every placement (the zones can change);
-  - open questions §12.1, §12.3, §12.4 are `TODO(plan §12.x)` in the code.
+  - the former open questions were decided later; see §12.
 
 ### Phase 4 — Database and sessions over HTTP
 - [x] **Prerequisite (owner):** DB objects from §4.1.
@@ -486,9 +489,11 @@ Each phase ends in a working, tested state. Phases 1–3 need no DB and no netwo
 
 ---
 
-## 12. Open questions
-1. **Auto-surrender rule:** 3 timed-out turns in a row (≈ 2.25 min at 45 s) instead of the design's "back within 2 minutes" (§3.5). The design doc should be updated once this is confirmed.
-2. **Supabase project:** the same project as sen-reveal (saves a free project; the table names don't clash) or a new one.
-3. **Shared budget for gear** (design §2 comment): one 1000-point budget with a 30% gear cap (current) or a separate hero budget. This changes `validateArmy` only.
-4. **Balance deploys** end running games (§3.6). Acceptable for now?
-5. **State size vs. history.** `state.history` keeps up to 3000 events (about 85 bytes each), so a long battle can reach about 260 KB per row, above the 100 KB target in §3.1. Options: a smaller cap (for example 1000), shorter event keys, or the full log in a separate column or table. Until then the cap stays at 3000.
+## 12. Decisions on the former open questions (2026-10-27)
+1. **Auto-surrender:** 3 timed-out turns in a row, as implemented (§3.5). The design doc still says "back within 2 minutes" and should be updated.
+2. **Supabase project:** the same project as sen-reveal. The owner created the §4.1 objects there.
+3. **Gear budget:** one budget shared by units and gear, with gear capped at 30% of it (`validateArmy`).
+4. **Balance deploys** end running games with `409 outdated` (§3.6). Accepted for now; deploy when nobody plays.
+5. **History size:** `state.history` stays capped at 3000 events (up to ≈ 260 KB per row in a very long battle), above the 100 KB target in §3.1. Accepted.
+6. **Rematch** (client plan §15.2): in the same room. `pocket-legions.rematch` (host, phase `over`) goes back to `army` with the same seats, races and armies (not ready). So the end of a battle no longer finishes the session: it stays `in_progress` in phase `over` until the host ends it, a rematch starts, or fewer than 2 players are left.
+7. **Lobby settings** (client plan §15.3): the host may change them before the start with `lobby.updateSettings` (any subset of the create settings, validated the same way; `maxPlayers` can't drop below the players already in).

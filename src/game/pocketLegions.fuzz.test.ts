@@ -73,7 +73,8 @@ describe("fuzz: random games through the module", () => {
         lastSeq = seq;
       }
       expect(game.state.phase).toBe("over");
-      expect(game.finished).toBe(true);
+      // the room stays open for a rematch
+      expect(game.finished).toBe(false);
     }
   }, 300_000);
 });

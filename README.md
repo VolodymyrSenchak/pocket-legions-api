@@ -10,7 +10,7 @@ Architecture copied from sen-reveal-api: Express + Socket.IO on Vercel, Supabase
 
 **Status:** plan phases 0–6 are done in code: engine, game module, sessions over HTTP against Supabase, real-time and the client contract ([docs/implementation/pocket-legions.api-contract.md](docs/implementation/pocket-legions.api-contract.md)). Left for the owner: the Vercel project, its WAF rule and the deployment (Phase 7, see the plan).
 
-Open questions from plan §12 are left as `TODO(plan §12.x)` in the code. The DB objects live in the same Supabase project as sen-reveal.
+The former open questions are decided in plan §12 (2026-10-27). The DB objects live in the same Supabase project as sen-reveal.
 
 ## Source of the infrastructure code
 

@@ -29,6 +29,7 @@ import {
   Seat,
   seatOf,
   Settings,
+  startProblem,
 } from "./pocketLegions.state";
 
 // Plan §7.3. Every handler is pure: it returns a new state built from a copy.
@@ -36,16 +37,16 @@ import {
 type Transition = Result<GameTransition<PocketLegionsState>>;
 type Handler<T> = (ctx: Ctx, state: PocketLegionsState, payload: T) => Transition;
 
-/** Wraps a handler with the checks every action shares: data version and seat. */
-function defineAction<T>(schema: z.ZodType<T>, handle: Handler<T>): GameAction<PocketLegionsState, Settings> {
+/** Wraps a handler with the checks every action shares: data version and the game being over. */
+function defineAction<T>(schema: z.ZodType<T>, handle: Handler<T>, options: { whenOver?: boolean } = {}): GameAction<PocketLegionsState, Settings> {
   return {
     schema,
     handle: (ctx, state, payload) => {
-      // TODO(plan §12.4): a balance deploy ends running games; keep the previous data module for 24 h if that hurts
+      // plan §12.4: a balance deploy ends running games (accepted for now)
       if (ctx.settings.dataVersion !== DATA_VERSION) {
         return fail("The game was updated — start a new room", "conflict", "outdated");
       }
-      if (state.phase === "over") return fail("The game is over", "conflict");
+      if (state.phase === "over" && !options.whenOver) return fail("The game is over", "conflict");
       return handle(ctx, structuredClone(state), payload as T);
     },
   };
@@ -107,7 +108,10 @@ function maybeStartBattle(ctx: Ctx, state: PocketLegionsState): void {
   state.history = appendHistory(state, events);
 }
 
-/** After an engine step: log the events, mirror eliminations, end the game when the battle is over. */
+/**
+ * After an engine step: log the events, mirror eliminations, move to `over` when the battle ends.
+ * The session stays `in_progress` so the room can play a rematch (client plan §15.2).
+ */
 function afterBattleStep(state: PocketLegionsState, events: GameEvent[]): Transition {
   const battle = state.battle!;
   state.history = appendHistory(state, events);
@@ -118,7 +122,6 @@ function afterBattleStep(state: PocketLegionsState, events: GameEvent[]): Transi
   if (battle.result) {
     state.phase = "over";
     state.result = { ...battle.result };
-    return next(state, true);
   }
   return next(state);
 }
@@ -265,6 +268,34 @@ export const pocketLegionsActions: Record<string, GameAction<PocketLegionsState,
     return afterBattleStep(state, events);
   }),
 
+  /** Client plan §15.2: the host starts a rematch in the same room, everyone keeps race and army (to resubmit or change). */
+  rematch: defineAction(
+    z.object({}),
+    (ctx, state) => {
+      if (ctx.actorId !== ctx.hostPlayerId) return fail("Only the host can do this", "forbidden");
+      const wrongPhase = requirePhase(state, "over");
+      if (wrongPhase) return wrongPhase;
+      const active = new Set(ctx.activePlayers.map((player) => player.id));
+      const seats = state.seats.filter((seat) => active.has(seat.playerId));
+      const problem = startProblem(ctx.settings, seats.length);
+      if (problem) return fail(`${problem} — start a new room`, "conflict");
+      state.seats = seats.map((seat) => ({
+        ...seat,
+        armyReady: false,
+        deployment: null,
+        deployReady: false,
+        eliminated: false,
+        timeoutsInRow: 0,
+      }));
+      state.phase = "army";
+      state.battle = null;
+      state.result = null;
+      state.history = [];
+      return next(state);
+    },
+    { whenOver: true }
+  ),
+
   surrender: defineAction(z.object({}), (ctx, state) => {
     const seat = requireSeat(ctx, state);
     if (!isSeat(seat)) return seat;
@@ -279,7 +310,14 @@ export const pocketLegionsActions: Record<string, GameAction<PocketLegionsState,
 export function onPlayerRemoved(ctx: Ctx, input: PocketLegionsState, playerId: string): GameTransition<PocketLegionsState> {
   const state = structuredClone(input);
   const seat = seatOf(state, playerId);
-  if (!seat || state.phase === "over") return { state: input };
+  if (!seat) return { state: input };
+
+  if (state.phase === "over") {
+    // drop everyone who has left; with fewer than 2 there is nobody to play a rematch with, so the room closes
+    const active = new Set(ctx.activePlayers.map((player) => player.id));
+    state.seats = state.seats.filter((candidate) => candidate !== seat && active.has(candidate.playerId));
+    return { state, finished: state.seats.length < 2 };
+  }
 
   if (state.phase === "battle") {
     const transition = afterBattleStep(state, eliminateSeat(state.battle!, seat.seat, battleEnv(ctx), "left"));

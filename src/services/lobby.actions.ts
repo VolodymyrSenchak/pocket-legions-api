@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ActionContext } from "../models/action.model";
 import { failure, forwardFailure, Result, SessionDraft, success } from "../models";
 import { buildGameContext, getActivePlayers, removePlayer } from "./roster";
+import { resolveSettings } from "./settings";
 
 /** Game-agnostic lobby action (wire type: `lobby.<name>`). */
 export interface LobbyAction {
@@ -62,6 +63,23 @@ export const lobbyActions: Record<string, LobbyAction> = {
   }),
 
   leave: defineLobbyAction(z.object({}), (env, draft) => success(removePlayer(draft, env.actorId, "left", env))),
+
+  /** Client plan §15.3: the host changes the room settings before the start. Missing keys keep their value. */
+  updateSettings: defineLobbyAction(z.record(z.string(), z.unknown()), (env, draft, changes) => {
+    const denied = requireHost(env, draft);
+    if (denied) return denied;
+    if (draft.status !== "pending") {
+      return failure("Settings can only change before the start", "conflict");
+    }
+    const settings = resolveSettings(env.module, { ...draft.state.settings, ...changes });
+    if (!settings.isSuccess) {
+      return forwardFailure(settings);
+    }
+    if (settings.result!.maxPlayers < getActivePlayers(draft.state).length) {
+      return failure("More players are already in the room", "conflict");
+    }
+    return success({ ...draft, state: { ...draft.state, settings: settings.result! } });
+  }),
 
   end: defineLobbyAction(z.object({}), (env, draft) => {
     const denied = requireHost(env, draft);

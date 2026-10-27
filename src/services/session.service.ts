@@ -3,7 +3,6 @@ import { AnyGameModule } from "../games/gameModule";
 import { ActionContext, actionRequestSchema } from "../models/action.model";
 import { CreateSessionBody, JoinSessionBody } from "../models/session.schemas";
 import {
-  CoreSettings,
   failure,
   forwardFailure,
   isSessionExpired,
@@ -22,12 +21,14 @@ import { logger } from "../utils/logger";
 import { cryptoRng, Rng } from "../utils/random";
 import { generateSessionCode, isValidSessionCode } from "../utils/sessionCode";
 import { lobbyActions } from "./lobby.actions";
+import { resolveSettings } from "./settings";
+
+export { DEFAULT_MAX_PLAYERS } from "./settings";
 import { isPlayerOnline } from "./presence";
 import { addPlayer, buildGameContext, getActivePlayers, isSameNickname, removePlayer, toDraft } from "./roster";
 import { SessionRepository } from "./sessionRepository.service";
 import { projectSessionView } from "./sessionView";
 
-export const DEFAULT_MAX_PLAYERS = 20;
 /** The polling fallback refreshes the caller's presence at most this often. */
 export const PRESENCE_TOUCH_INTERVAL_MS = 10_000;
 /** A burst of N simultaneous writers needs up to N rounds, so allow enough attempts plus jittered backoff. */
@@ -414,29 +415,6 @@ function getJoinBlocker(row: SessionRow): Result<SessionDraft> | null {
   return null;
 }
 
-function resolveSettings(
-  module: AnyGameModule,
-  input: Record<string, unknown> = {}
-): Result<CoreSettings & Record<string, unknown>> {
-  const coreSchema = z.object({
-    maxPlayers: z
-      .number()
-      .int()
-      .min(module.minPlayers)
-      .max(module.maxPlayers)
-      .default(Math.min(DEFAULT_MAX_PLAYERS, module.maxPlayers)),
-    allowJoinInProgress: module.allowJoinInProgress === false ? z.literal(false).default(false) : z.boolean().default(true),
-  });
-  const core = coreSchema.safeParse(input);
-  if (!core.success) {
-    return failure(z.prettifyError(core.error), "bad-request");
-  }
-  const game = module.settingsSchema.safeParse({ ...module.defaultSettings, ...input });
-  if (!game.success) {
-    return failure(z.prettifyError(game.error), "bad-request");
-  }
-  return success({ ...(game.data as Record<string, unknown>), ...core.data });
-}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));

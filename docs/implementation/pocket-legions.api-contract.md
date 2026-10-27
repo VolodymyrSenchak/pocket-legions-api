@@ -32,7 +32,7 @@ Settings (validated on create, defaults in brackets):
 
 ## 2. Actions
 
-`lobby.*`: `start`, `kick`, `transferHost`, `leave`, `end` (as in SR). Game actions are `pocket-legions.<name>`. They need `status === 'in_progress'`, otherwise you get `409 conflict`.
+`lobby.*`: `start`, `kick`, `transferHost`, `leave`, `end` (as in SR), plus `updateSettings`: host only, before the start, payload = any subset of the create settings. It returns `400` for bad values and `409` once started or if `maxPlayers` is below the players already in. Game actions are `pocket-legions.<name>`. They need `status === 'in_progress'`, otherwise you get `409 conflict`.
 
 | Action | Phase | Who | Payload | Errors |
 |---|---|---|---|---|
@@ -45,6 +45,7 @@ Settings (validated on create, defaults in brackets):
 | `heroAbility` | battle | active seat, before `act` | `{ target?, ally?, cell?, cells? }` | same as `act` |
 | `claimTimeout` | battle | any seat | `{}` | `409 too-early` |
 | `surrender` | battle | own seat | `{}` | |
+| `rematch` | over | host | `{}` | `403`; `409` if the players left can't start on this map |
 
 `act` fields per kind:
 - `move`: `cell` is the destination.
@@ -93,7 +94,8 @@ SR §9.3 applies as is: store the token, reconnect, accept a snapshot only if `v
 4. **Morale.** `battle.bonusStackId` set means that stack acts once more (the hints then contain only it).
 5. **Versions.** On `409 outdated` show "The game was updated — start a new room". If `settings.dataVersion` differs from the client's synced `DATA_VERSION`, prompt a reload before acting.
 6. **Hidden information.** You never see other players' armies, gear or deployments before the battle. Gear (`battle.sides[].items`) becomes visible when the battle starts.
-7. **Dead stacks** stay in `battle.stacks` with `count: 0` (corpses). Their cell is free.
+7. **After the battle** (`phase: over`) the session stays `in_progress`. Show the result with "Rematch" for the host and "Leave" for everyone.
+8. **Dead stacks** stay in `battle.stacks` with `count: 0` (corpses). Their cell is free.
 
 ## 5. Event types
 
@@ -233,4 +235,4 @@ The same `battle` and `events`, with `"mySeat": 1` and `"hints": null`.
 }
 ```
 
-The session `status` is `finished`. The final `battle.stacks` are kept, and after the round limit `result.points` holds the living army points per seat in `battle.order`.
+The session stays `in_progress` so the host can send `pocket-legions.rematch`: the game goes back to `army` with everyone's race and army kept in `mine.army` (resubmit it to be ready). The session finishes with `lobby.end` or when fewer than 2 players are left. The final `battle.stacks` are kept, and after the round limit `result.points` holds the living army points per seat in `battle.order`.
