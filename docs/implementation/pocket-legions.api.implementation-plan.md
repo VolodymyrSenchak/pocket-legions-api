@@ -400,25 +400,33 @@ Socket.IO events are identical (SR §9.2). The client contract is SR §9.3 plus:
 Each phase ends in a working, tested state. Phases 1–3 need no DB and no network. After Phase 3 the client can start hot-seat work on the copied engine.
 
 ### Phase 0 — Scaffold from sen-reveal-api
-- [ ] New repo. Copy the files marked `C`/`A` in §5 from sen-reveal-api `83a5261`. Rename the table, RPC and topic. Remove `games/` modules and the registry. Keep `gameModule.ts`.
-- [ ] A tiny `test-game` module in tests (as SR Phase 3) so the copied lobby/session tests keep running.
-- [ ] `README.md` with the source commit, env vars (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `CORS_ORIGINS`, `PORT`, `LOG_LEVEL`) and scripts.
+- [x] New repo. Copy the files marked `C`/`A` in §5 from sen-reveal-api `83a5261`. Rename the table, RPC and topic. Remove `games/` modules and the registry. Keep `gameModule.ts`.
+- [x] A tiny `test-game` module in tests (as SR Phase 3) so the copied lobby/session tests keep running.
+- [x] `README.md` with the source commit, env vars (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `CORS_ORIGINS`, `PORT`, `LOG_LEVEL`) and scripts.
 - [ ] Vercel project with Fluid compute on. Reuse sen-reveal's WebSocket spike result, or run it (SR Phase 0) if it is still open.
 - **Done when:** `npm run test:run` passes with the copied tests on the in-memory repo, and `npm run build` passes.
+- **Status (commit ceebe44):** done, except the Vercel project (not created yet). Differs from the plan:
+  - no `gameType` anywhere; `createRuntime({ module })` takes the one module (tests inject `test-game`);
+  - `GameModule.allowJoinInProgress?: boolean` pins the core setting to false; a join after start returns `409 session-started`;
+  - `Result.errorReason` / `ApiError.reason` carry the finer reason of `invalid-army`, `invalid-deploy` and `illegal-action`;
+  - `@types/express-serve-static-core` is pinned to `5.0.6`, so the copied routes compile unchanged;
+  - `dist/` is git-ignored (sen-reveal commits it for `vercel.json`); to decide in Phase 7.
 
 ### Phase 1 — Engine data, balance and maps
-- [ ] `engine/data/*` ported from `design/data`. `engine/version.ts`.
-- [ ] `balance.ts` + the cost test (§6.1). `grid.ts` map build/validate + tests for all 8 maps.
-- [ ] Import-rule test (§3.3) and the `Math.random`/`Date.now` grep test (§3.2).
+- [x] `engine/data/*` ported from `design/data`. `engine/version.ts`.
+- [x] `balance.ts` + the cost test (§6.1). `grid.ts` map build/validate + tests for all 8 maps.
+- [x] Import-rule test (§3.3) and the `Math.random`/`Date.now` grep test (§3.2).
 - **Done when:** all 60 costs match and all 8 maps validate.
+- **Status (commit 667216a):** done. The data now lives in `src/engine/data` (the source of truth from here on). Map player limits are in `MapDef.ffaPlayers` / `teams`. The import-rule test is `src/purity.test.ts` (outside `engine/`, so the client copy has no Node test). It also lets `game/` `import type` from `games/gameModule`, besides types from `models/`.
 
 ### Phase 2 — Combat engine
-- [ ] `pathfinding.ts`, `los.ts`, `army.ts`, `damage.ts` (+ `preview`), `abilities.ts`, `turns.ts`, `battle.ts`, `victory.ts`.
-- [ ] Unit tests per §6.9 and every ability. The fuzz test.
+- [x] `pathfinding.ts`, `los.ts`, `army.ts`, `damage.ts` (+ `preview`), `abilities.ts`, `turns.ts`, `battle.ts`, `victory.ts`.
+- [x] Unit tests per §6.9 and every ability. The fuzz test.
 - **Done when:** 500 fuzz battles pass the invariants with a seeded rng, and every ability has tests.
+- **Status (commit 2c42061):** done. Extra files: `state.ts` (battle state, events), `stats.ts` (effective stats), `effects.ts` (damage/heal/status primitives), `heroes.ts` (hero abilities). `BattleState` also has `order`, `turn`, `bonusStackId` (morale) and `killedThisRound` (necromancy). The projection part of the fuzz invariants is checked in Phase 3 (`pocketLegions.fuzz.test.ts`). Rule interpretations where the design is silent (magic sources for stone skin, heal without revive, skip timing, splash rules, mantle power, 2 vs 2 corners and turn order) are listed in the session notes and should be confirmed in playtests.
 
 ### Phase 3 — Game module
-- [ ] `pocketLegions.state.ts`, `pocketLegions.actions.ts` (§7.3), `pocketLegions.hints.ts`, `pocketLegions.projection.ts` (§7.5), `pocketLegions.module.ts`. Wire it into the dispatcher.
+- [x] `pocketLegions.state.ts`, `pocketLegions.actions.ts` (§7.3), `pocketLegions.hints.ts`, `pocketLegions.projection.ts` (§7.5), `pocketLegions.module.ts`. Wire it into the dispatcher.
 - **Unit tests:**
   - other armies hidden in the army phase and deployments hidden until battle, asserted on the **whole serialized view**;
   - hints equal what `act` accepts: for every hint, `act` succeeds; for a sample of non-hint cells, `act` fails;
@@ -426,6 +434,12 @@ Each phase ends in a working, tested state. Phases 1–3 need no DB and no netwo
   - roster removal in each phase;
   - the projection is deterministic.
 - **Done when:** a 2-player and a 2v2 battle play to the end through `module.actions` alone.
+- **Status (commit b9972e6):** done. Differs from the plan:
+  - the `outdated` check runs in the module's actions; the dispatcher and socket handshake checks (§8) and `mapId`/`mode`/`budget` in `GET /info` (§9) are left for Phases 4–5;
+  - `heroAbility` also takes `ally` (the blood ritual heal target), and `hints.hero` has `allies`;
+  - player counts per map/mode are checked at `lobby.start`; in 2 vs 2 each team needs 1–2 players before `submitArmy`;
+  - leaving during deploy clears every placement (the zones can change);
+  - open questions §12.1, §12.3, §12.4 are `TODO(plan §12.x)` in the code.
 
 ### Phase 4 — Database and sessions over HTTP
 - [ ] **Prerequisite (owner):** DB objects from §4.1.
