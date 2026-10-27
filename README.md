@@ -8,6 +8,10 @@ Architecture copied from sen-reveal-api: Express + Socket.IO on Vercel, Supabase
 - Game design: [../design/pocket-legions.game-design.md](../design/pocket-legions.game-design.md)
 - Client: [../pocket-legions-app](../pocket-legions-app/README.md)
 
+**Status:** plan phases 0–3 are done: the scaffold, engine data and balance, the combat engine and the `pocket-legions` game module, all tested without a DB or network. Next: Phase 4 (the Supabase table and HTTP integration).
+
+Open questions from plan §12 are left as `TODO(plan §12.x)` in the code; §12.2 (same Supabase project as sen-reveal or a new one) is a setup decision for Phase 4.
+
 ## Source of the infrastructure code
 
 `src/app.ts`, `index.ts`, `runtime.ts`, `models/`, `services/`, `realtime/`, `routes/`, `middlewares/`, `utils/`, `testing/`,
