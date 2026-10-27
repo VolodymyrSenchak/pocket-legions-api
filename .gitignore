@@ -7,7 +7,6 @@ npm-shrinkwrap.json
 
 .env
 .env.local
-dist
 
 # Coveralls
 .idea

@@ -1,0 +1,1 @@
+{"version":3,"file":"pollInterval.js","sourceRoot":"","sources":["../../src/utils/pollInterval.ts"],"names":[],"mappings":";;AASA,8CAEC;AATD,MAAM,gBAAgB,GAAkC;IACtD,OAAO,EAAE,IAAI;IACb,WAAW,EAAE,IAAI;IACjB,QAAQ,EAAE,KAAK;CAChB,CAAC;AAEF,6FAA6F;AAC7F,SAAgB,iBAAiB,CAAC,MAAqB;IACrD,OAAO,gBAAgB,CAAC,MAAM,CAAC,CAAC;AAClC,CAAC"}

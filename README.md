@@ -28,7 +28,7 @@ What differs from the source:
   New error codes: `too-early`, `outdated`, `invalid-army`, `invalid-deploy`, `not-your-turn`, `illegal-action`, `session-started`.
 - `corsUtils` reads allowed origins only from `CORS_ORIGINS`.
 - `@types/express-serve-static-core` is pinned to `5.0.6` (as installed in sen-reveal-api) so the copied routes compile unchanged.
-- `dist/` is not committed (sen-reveal-api commits it for its `vercel.json` build). Decide at deployment (plan Phase 7).
+- `dist/` is committed, as in sen-reveal-api: `vercel.json` deploys `dist/index.js` as is. Run `npm run build` and commit `dist/` together with every change to `src/`.
 
 ## Requirements
 
