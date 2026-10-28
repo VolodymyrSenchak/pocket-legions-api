@@ -65,6 +65,23 @@ describe("engine/ and game/ purity", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("the client set in client-sync.json imports nothing outside itself except zod", () => {
+    const manifest = JSON.parse(fs.readFileSync(path.join(SRC, "..", "client-sync.json"), "utf8")) as {
+      folders: string[];
+      files: string[];
+      dependencies: string[];
+    };
+    const fromRoot = (entry: string) => path.join(SRC, "..", entry);
+    const files = [...manifest.folders.flatMap((folder) => sourceFiles(fromRoot(folder))), ...manifest.files.map(fromRoot)];
+    const inSet = new Set(files.map((file) => path.relative(SRC, file).split(path.sep).join("/").replace(/\.ts$/, "")));
+    const bad = files
+      .flatMap(imports)
+      .filter((ref) => !(inSet.has(target(ref)) || manifest.dependencies.includes(target(ref))));
+    expect(bad).toEqual([]);
+    const impure = manifest.files.filter((file) => /Math\.random\s*\(|Date\.now\s*\(|new Date\(\s*\)|\bprocess\./.test(fs.readFileSync(fromRoot(file), "utf8")));
+    expect(impure).toEqual([]);
+  });
+
   it("finds the files it checks", () => {
     expect(sourceFiles(path.join(SRC, "engine")).length).toBeGreaterThan(5);
     expect(sourceFiles(path.join(SRC, "game")).length).toBeGreaterThan(0);

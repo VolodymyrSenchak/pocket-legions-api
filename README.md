@@ -76,4 +76,13 @@ src/
 ```
 
 `engine/` and `game/` are pure TypeScript: no Node, DB or socket imports, no `Math.random()` / `Date.now()`
-(a test enforces both). The client copies these two folders verbatim.
+(a test enforces both).
+
+## Sharing with the client
+
+The client's `npm run sync:engine` copies the set listed in [client-sync.json](client-sync.json), keeping the paths under `src/`:
+
+- `src/engine/` and `src/game/` (without `*.test.ts`);
+- `src/games/gameModule.ts`, `src/models/result.ts`, `src/models/session.model.ts` (types the game module uses).
+
+Its only dependency is `zod` (v4, as in package.json). `src/purity.test.ts` fails if any file in the set imports something outside it.

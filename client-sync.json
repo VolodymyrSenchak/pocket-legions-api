@@ -1,0 +1,7 @@
+{
+  "description": "What the client's `npm run sync:engine` copies from this repo, paths kept as they are under src/. src/purity.test.ts checks that this set imports nothing outside itself except zod.",
+  "folders": ["src/engine", "src/game"],
+  "files": ["src/games/gameModule.ts", "src/models/result.ts", "src/models/session.model.ts"],
+  "exclude": ["*.test.ts"],
+  "dependencies": ["zod"]
+}

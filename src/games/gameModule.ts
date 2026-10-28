@@ -1,13 +1,13 @@
 import type { z } from "zod";
 import type { ErrorCode, Result } from "../models/result";
 import type { PlayerRecord, SessionStatus } from "../models/session.model";
-import type { Rng } from "../utils/random";
+import type { Rng } from "../engine/rng";
 
 /**
  * Everything a game needs to plug into the session infrastructure.
  * The core handles players, lobby, host, expiry, presence, persistence and delivery.
  *
- * Handlers must be pure: no DB, no sockets, no Date.now()/Math.random() (use ctx.now / ctx.rng).
+ * Handlers must be pure: no DB, no sockets, no clock reads or Math.random: use ctx.now and ctx.rng.
  */
 export interface GameModule<TState, TSettings, TView> {
   /** Action namespace: wire type `<type>.<name>`. */
