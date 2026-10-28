@@ -3,8 +3,8 @@ import { actionsFromHints, GameDriver, GAME_START } from "../testing/game";
 import { createHttpHarness } from "../testing/harness";
 import { createSeededRng } from "../utils/random";
 import { getMap } from "../engine/grid";
-import { pocketLegionsModule } from "./pocketLegions.module";
-import { PocketLegionsView } from "./pocketLegions.projection";
+import { skirmoraModule } from "./skirmora.module";
+import { SkirmoraView } from "./skirmora.projection";
 import { DATA_VERSION } from "../engine/version";
 
 const KNIGHTS_ARMY = {
@@ -29,7 +29,7 @@ function toBattle(game: GameDriver) {
   return game;
 }
 
-describe("pocket-legions module", () => {
+describe("skirmora module", () => {
   describe("start", () => {
     it("seats players in join order; 2 vs 2 defaults to seats 0+2 vs 1+3", () => {
       const game = new GameDriver(["a", "b", "c", "d"], { mode: "teams", mapId: "river" });
@@ -50,9 +50,9 @@ describe("pocket-legions module", () => {
     });
 
     it("validates settings and pins the data version", () => {
-      expect(pocketLegionsModule.settingsSchema.safeParse({ ...pocketLegionsModule.defaultSettings, budget: 700 }).success).toBe(false);
-      expect(pocketLegionsModule.settingsSchema.safeParse({ ...pocketLegionsModule.defaultSettings, turnSeconds: 10 }).success).toBe(false);
-      const parsed = pocketLegionsModule.settingsSchema.parse({ ...pocketLegionsModule.defaultSettings, dataVersion: "hacked" });
+      expect(skirmoraModule.settingsSchema.safeParse({ ...skirmoraModule.defaultSettings, budget: 700 }).success).toBe(false);
+      expect(skirmoraModule.settingsSchema.safeParse({ ...skirmoraModule.defaultSettings, turnSeconds: 10 }).success).toBe(false);
+      const parsed = skirmoraModule.settingsSchema.parse({ ...skirmoraModule.defaultSettings, dataVersion: "hacked" });
       expect(parsed).toEqual({ mapId: "valley", budget: 1000, mode: "ffa", turnSeconds: 45, dataVersion: DATA_VERSION });
     });
   });
@@ -378,7 +378,7 @@ describe("pocket-legions module", () => {
 
     it("an outsider gets the public view only", () => {
       const game = toBattle(twoPlayers());
-      const view: PocketLegionsView = game.view("stranger");
+      const view: SkirmoraView = game.view("stranger");
       expect(view.mySeat).toBeNull();
       expect(view.hints).toBeNull();
       expect(view.mine).toBeNull();
@@ -386,20 +386,20 @@ describe("pocket-legions module", () => {
   });
 
   describe("through the session pipeline", () => {
-    it("routes pocket-legions.* actions and refuses joins after the start", async () => {
-      const h = createHttpHarness({ module: pocketLegionsModule });
+    it("routes skirmora.* actions and refuses joins after the start", async () => {
+      const h = createHttpHarness({ module: skirmoraModule });
       const host = await h.api.createPlayer("Ann", { settings: { mapId: "arena" } });
       const ben = await h.api.joinPlayer(host.code, "Ben");
       let view = await h.api.act(host, "lobby.start");
       expect(view.settings).toMatchObject({ mapId: "arena", allowJoinInProgress: false, maxPlayers: 4, dataVersion: DATA_VERSION });
-      expect((view.game as PocketLegionsView).phase).toBe("army");
+      expect((view.game as SkirmoraView).phase).toBe("army");
       const late = await h.api.join(host.code, { nickname: "Cid" });
       expect(late.status).toBe(409);
       expect(late.body.error.code).toBe("session-started");
 
-      view = await h.api.act(ben, "pocket-legions.pickRace", { raceId: "elves" });
-      expect((view.game as PocketLegionsView).seats[1].raceId).toBe("elves");
-      const bad = await h.api.action(ben, "pocket-legions.submitArmy", { stacks: [{ unitId: "orc", count: 1 }] });
+      view = await h.api.act(ben, "skirmora.pickRace", { raceId: "elves" });
+      expect((view.game as SkirmoraView).seats[1].raceId).toBe("elves");
+      const bad = await h.api.action(ben, "skirmora.submitArmy", { stacks: [{ unitId: "orc", count: 1 }] });
       expect(bad.status).toBe(400);
       expect(bad.body.error).toMatchObject({ code: "invalid-army", reason: "wrong-race" });
       expect((await h.api.action(ben, "test-game.increment")).status).toBe(400);

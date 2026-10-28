@@ -1,19 +1,19 @@
 import { DATA_VERSION } from "../engine/version";
 import type { GameModule } from "../games/gameModule";
-import { onPlayerRemoved, pocketLegionsActions } from "./pocketLegions.actions";
-import { project, PocketLegionsView } from "./pocketLegions.projection";
+import { onPlayerRemoved, skirmoraActions } from "./skirmora.actions";
+import { project, SkirmoraView } from "./skirmora.projection";
 import {
   createInitialState,
   Ctx,
   defaultSettings,
   GAME_TYPE,
-  PocketLegionsSettings,
-  PocketLegionsState,
+  SkirmoraSettings,
+  SkirmoraState,
   settingsSchema,
-} from "./pocketLegions.state";
+} from "./skirmora.state";
 
-/** Pocket Legions behind `pocket-legions.<action>` (plan §7). */
-export const pocketLegionsModule: GameModule<PocketLegionsState, PocketLegionsSettings, PocketLegionsView> = {
+/** Skirmora behind `skirmora.<action>` (plan §7). */
+export const skirmoraModule: GameModule<SkirmoraState, SkirmoraSettings, SkirmoraView> = {
   type: GAME_TYPE,
   minPlayers: 2,
   maxPlayers: 4,
@@ -21,8 +21,8 @@ export const pocketLegionsModule: GameModule<PocketLegionsState, PocketLegionsSe
   settingsSchema,
   defaultSettings,
   createInitialState: (ctx) => createInitialState(ctx as Ctx),
-  // handlers read the core settings too (Settings = PocketLegionsSettings & CoreSettings)
-  actions: pocketLegionsActions as GameModule<PocketLegionsState, PocketLegionsSettings, PocketLegionsView>["actions"],
+  // handlers read the core settings too (Settings = SkirmoraSettings & CoreSettings)
+  actions: skirmoraActions as GameModule<SkirmoraState, SkirmoraSettings, SkirmoraView>["actions"],
   onPlayerRemoved: (ctx, state, playerId) => onPlayerRemoved(ctx as Ctx, state, playerId),
   project: (state, viewerId, ctx) => project(state, viewerId, ctx as Ctx),
   getHistory: (state) => state.history,

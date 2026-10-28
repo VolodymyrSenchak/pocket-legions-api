@@ -1,6 +1,6 @@
 /**
  * Phase 1 manual check against the real Supabase project.
- * Requires the DB objects from docs/implementation/pocket-legions.api.implementation-plan.md §4.1.
+ * Requires the DB objects from docs/implementation/skirmora.api.implementation-plan.md §4.1.
  *
  * Creates ONE session row (rows are never deleted by design; it expires after 24 h),
  * CAS-updates it, checks that a stale update returns null and that a presence update

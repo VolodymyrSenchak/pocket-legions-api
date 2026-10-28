@@ -1,6 +1,6 @@
 /**
  * Phase 5 manual check of the server-only relay against the real Supabase project:
- * one client subscribes to `pocket-legions-session:<random id>`, another publishes, the message must arrive.
+ * one client subscribes to `skirmora-session:<random id>`, another publishes, the message must arrive.
  * Sends no game data and writes no rows.
  *
  * Run: npm run smoke:relay

@@ -25,7 +25,7 @@ describe("game module framework", () => {
     view = await h.api.act(bob, "test-game.increment", { by: 5 });
     expect((view.game as TestGameView).counter).toBe(7);
 
-    expect((await h.api.action(bob, "pocket-legions.act")).status).toBe(400);
+    expect((await h.api.action(bob, "skirmora.act")).status).toBe(400);
     expect((await h.api.action(bob, "test-game.constructor")).status).toBe(400);
     expect((await h.api.action(bob, "test-game.increment", { by: "x" })).status).toBe(400);
 

@@ -1,7 +1,7 @@
 {
-  "name": "pocket-legions-api",
+  "name": "skirmora-api",
   "version": "1.0.0",
-  "description": "Backend for Pocket Legions: lobby, sessions and the server-side battle engine",
+  "description": "Backend for Skirmora: lobby, sessions and the server-side battle engine",
   "private": true,
   "main": "dist/index.js",
   "engines": {

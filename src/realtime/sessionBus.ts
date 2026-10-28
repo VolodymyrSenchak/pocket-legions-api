@@ -102,7 +102,7 @@ export class SupabaseRealtimeBus implements SessionBus {
   constructor(private readonly publisher: SupabaseClient, private readonly subscriber: SupabaseClient) {}
 
   static topic(sessionId: string): string {
-    return `pocket-legions-session:${sessionId}`;
+    return `skirmora-session:${sessionId}`;
   }
 
   async publish(sessionId: string, message: BusMessage): Promise<void> {

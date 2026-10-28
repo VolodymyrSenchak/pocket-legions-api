@@ -1,14 +1,14 @@
-# pocket-legions-api
+# skirmora-api
 
-Backend for Pocket Legions, a turn-based tactics game for 2–4 players. It provides anonymous players, 6-digit room codes, a lobby, and the battle itself, which the server validates and runs. Game state is synced in real time over Socket.IO, with an HTTP polling fallback.
+Backend for Skirmora, a turn-based tactics game for 2–4 players. It provides anonymous players, 6-digit room codes, a lobby, and the battle itself, which the server validates and runs. Game state is synced in real time over Socket.IO, with an HTTP polling fallback.
 
 Architecture copied from sen-reveal-api: Express + Socket.IO on Vercel, Supabase as the database only.
 
-- Plan: [docs/implementation/pocket-legions.api.implementation-plan.md](docs/implementation/pocket-legions.api.implementation-plan.md)
-- Game design: [../design/pocket-legions.game-design.md](../design/pocket-legions.game-design.md)
-- Client: [../pocket-legions-app](../pocket-legions-app/README.md)
+- Plan: [docs/implementation/skirmora.api.implementation-plan.md](docs/implementation/skirmora.api.implementation-plan.md)
+- Game design: [../design/skirmora.game-design.md](../design/skirmora.game-design.md)
+- Client: [../skirmora-app](../skirmora-app/README.md)
 
-**Status:** plan phases 0–6 are done in code: engine, game module, sessions over HTTP against Supabase, real-time and the client contract ([docs/implementation/pocket-legions.api-contract.md](docs/implementation/pocket-legions.api-contract.md)). Left for the owner: the Vercel project, its WAF rule and the deployment (Phase 7, see the plan).
+**Status:** plan phases 0–6 are done in code: engine, game module, sessions over HTTP against Supabase, real-time and the client contract ([docs/implementation/skirmora.api-contract.md](docs/implementation/skirmora.api-contract.md)). Left for the owner: the Vercel project, its WAF rule and the deployment (Phase 7, see the plan).
 
 The former open questions are decided in plan §12 (2026-10-27). The DB objects live in the same Supabase project as sen-reveal.
 
@@ -20,9 +20,9 @@ The former open questions are decided in plan §12 (2026-10-27). The DB objects 
 
 What differs from the source:
 - One game: the `GameRegistry` and the game folders are gone. The runtime takes a single `module`
-  (`pocket-legions` by default, the stub `test-game` in the copied tests). `lobby.*` goes to the lobby, `<module.type>.*` to the module, anything else is `400`.
+  (`skirmora` by default, the stub `test-game` in the copied tests). `lobby.*` goes to the lobby, `<module.type>.*` to the module, anything else is `400`.
 - No `gameType` anywhere (row, view, info, create body). Table `pocket_legions_session`, RPC `pocket_legions_session_presence`,
-  relay topic `pocket-legions-session:<id>`.
+  relay topic `skirmora-session:<id>`.
 - `GameModule.allowJoinInProgress = false` pins the core setting (no joins after `lobby.start`; join returns `409 session-started`).
 - `Result.errorReason` / `ApiError.reason`: a finer machine-readable reason, e.g. `invalid-army` + `too-many-stacks`.
   New error codes: `too-early`, `outdated`, `invalid-army`, `invalid-deploy`, `not-your-turn`, `illegal-action`, `session-started`.
@@ -71,7 +71,7 @@ src/
   realtime/                      Socket.IO server, relay bus, broadcaster, presence, maintenance tick
   middlewares/, routes/, utils/
   engine/                        pure battle rules and data, shared with the client (plan §6)
-  game/                          the pocket-legions GameModule: state, actions, hints, projection (plan §7)
+  game/                          the skirmora GameModule: state, actions, hints, projection (plan §7)
   testing/                       in-memory harness and the stub test-game module
 ```
 

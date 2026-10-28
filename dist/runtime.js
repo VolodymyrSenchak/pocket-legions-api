@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createRuntime = createRuntime;
 exports.createSupabaseRuntime = createSupabaseRuntime;
 const app_1 = require("./app");
-const pocketLegions_module_1 = require("./game/pocketLegions.module");
+const skirmora_module_1 = require("./game/skirmora.module");
 const broadcaster_1 = require("./realtime/broadcaster");
 const localSessions_1 = require("./realtime/localSessions");
 const sessionBus_1 = require("./realtime/sessionBus");
@@ -15,7 +15,7 @@ const random_1 = require("./utils/random");
 /** Composition root: one instance = one Express app + (optionally) one Socket.IO server. */
 function createRuntime(options) {
     const { repository, bus } = options;
-    const module = options.module ?? pocketLegions_module_1.pocketLegionsModule;
+    const module = options.module ?? skirmora_module_1.skirmoraModule;
     const clock = options.clock ?? (() => new Date());
     const rng = options.rng ?? random_1.cryptoRng;
     const localSessions = new localSessions_1.LocalSessions();

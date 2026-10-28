@@ -49,4 +49,4 @@ function buildHints(battle, seat) {
         hero: hero ? { abilityId: hero.abilityId, targets: hero.targets, allies: hero.allies, cells: hero.cells.map(plain) } : null,
     };
 }
-//# sourceMappingURL=pocketLegions.hints.js.map
+//# sourceMappingURL=skirmora.hints.js.map

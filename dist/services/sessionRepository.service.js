@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SupabaseSessionRepository = void 0;
 const models_1 = require("../models");
 const logger_1 = require("../utils/logger");
+// The deployed database still uses the game's old name; renaming needs a migration.
 const TABLE = "pocket_legions_session";
 const PRESENCE_RPC = "pocket_legions_session_presence";
 const UNIQUE_VIOLATION = "23505";

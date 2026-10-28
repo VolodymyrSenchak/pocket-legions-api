@@ -1,9 +1,9 @@
 import { getMap } from "../engine/grid";
 import type { Rng } from "../engine/rng";
-import { pocketLegionsModule } from "../game/pocketLegions.module";
-import { deployZoneOf } from "../game/pocketLegions.actions";
-import type { PocketLegionsView } from "../game/pocketLegions.projection";
-import { Ctx, defaultSettings, PocketLegionsSettings, PocketLegionsState, Settings } from "../game/pocketLegions.state";
+import { skirmoraModule } from "../game/skirmora.module";
+import { deployZoneOf } from "../game/skirmora.actions";
+import type { SkirmoraView } from "../game/skirmora.projection";
+import { Ctx, defaultSettings, SkirmoraSettings, SkirmoraState, Settings } from "../game/skirmora.state";
 import type { Result } from "../models/result";
 import type { GameTransition } from "../games/gameModule";
 import { createSeededRng } from "../utils/random";
@@ -14,21 +14,21 @@ import { RACE_IDS } from "../engine/data/races";
 
 export const GAME_START = Date.parse("2026-11-01T12:00:00.000Z");
 
-/** Drives the pocket-legions module directly through `module.actions`, like the session pipeline does. */
+/** Drives the skirmora module directly through `module.actions`, like the session pipeline does. */
 export class GameDriver {
-  state: PocketLegionsState;
+  state: SkirmoraState;
   finished = false;
   now = GAME_START;
   readonly settings: Settings;
 
   constructor(
     public players: string[],
-    settings: Partial<PocketLegionsSettings> = {},
+    settings: Partial<SkirmoraSettings> = {},
     readonly rng: Rng = createSeededRng(1),
     readonly host = players[0]
   ) {
     this.settings = { ...defaultSettings, ...settings, maxPlayers: 4, allowJoinInProgress: false };
-    const initial = pocketLegionsModule.createInitialState(this.ctx(host));
+    const initial = skirmoraModule.createInitialState(this.ctx(host));
     if (!initial.isSuccess) throw new Error(String(initial.error));
     this.state = initial.result!;
   }
@@ -52,8 +52,8 @@ export class GameDriver {
   }
 
   /** Runs an action; on success the state moves on, on failure it stays. */
-  tryAct(actorId: string, name: string, payload: unknown = {}): Result<GameTransition<PocketLegionsState>> {
-    const action = pocketLegionsModule.actions[name];
+  tryAct(actorId: string, name: string, payload: unknown = {}): Result<GameTransition<SkirmoraState>> {
+    const action = skirmoraModule.actions[name];
     const parsed = action.schema.safeParse(payload);
     if (!parsed.success) return { isSuccess: false, error: parsed.error.message, errorStatus: "bad-request" };
     const result = action.handle(this.ctx(actorId), this.state, parsed.data);
@@ -64,19 +64,19 @@ export class GameDriver {
     return result;
   }
 
-  act(actorId: string, name: string, payload: unknown = {}): PocketLegionsState {
+  act(actorId: string, name: string, payload: unknown = {}): SkirmoraState {
     const result = this.tryAct(actorId, name, payload);
     if (!result.isSuccess) throw new Error(`${name} by ${actorId}: ${result.errorCode ?? result.errorStatus} ${result.errorReason ?? ""} ${result.error}`);
     return this.state;
   }
 
-  view(viewerId: string): PocketLegionsView {
-    return pocketLegionsModule.project(this.state, viewerId, this.ctx(viewerId));
+  view(viewerId: string): SkirmoraView {
+    return skirmoraModule.project(this.state, viewerId, this.ctx(viewerId));
   }
 
   remove(playerId: string): void {
     const remaining = this.players.filter((id) => id !== playerId);
-    const transition = pocketLegionsModule.onPlayerRemoved!(this.ctx(remaining[0] ?? playerId, remaining), this.state, playerId);
+    const transition = skirmoraModule.onPlayerRemoved!(this.ctx(remaining[0] ?? playerId, remaining), this.state, playerId);
     this.players = remaining;
     this.state = transition.state;
     this.finished ||= Boolean(transition.finished);
@@ -127,7 +127,7 @@ export class GameDriver {
 }
 
 /** Every `act` payload the hints offer. */
-export function actionsFromHints(hints: NonNullable<PocketLegionsView["hints"]>): ActAction[] {
+export function actionsFromHints(hints: NonNullable<SkirmoraView["hints"]>): ActAction[] {
   return hints.stacks.flatMap((stack) => [
     ...(stack.canDefend ? [{ stackId: stack.stackId, kind: "defend" as const }] : []),
     ...stack.moves.map((cell) => ({ stackId: stack.stackId, kind: "move" as const, cell })),
@@ -141,7 +141,7 @@ export function actionsFromHints(hints: NonNullable<PocketLegionsView["hints"]>)
   ]);
 }
 
-function heroPayloadFromHints(rng: Rng, hero: NonNullable<NonNullable<PocketLegionsView["hints"]>["hero"]>): HeroPayload | null {
+function heroPayloadFromHints(rng: Rng, hero: NonNullable<NonNullable<SkirmoraView["hints"]>["hero"]>): HeroPayload | null {
   switch (hero.abilityId) {
     case "battle_cry":
       return {};

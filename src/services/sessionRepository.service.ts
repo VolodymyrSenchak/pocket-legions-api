@@ -25,6 +25,7 @@ export interface SessionRepository {
   setPresence(id: string, playerIds: string[], online: boolean): Promise<Result<void>>;
 }
 
+// The deployed database still uses the game's old name; renaming needs a migration.
 const TABLE = "pocket_legions_session";
 const PRESENCE_RPC = "pocket_legions_session_presence";
 const UNIQUE_VIOLATION = "23505";

@@ -19,7 +19,7 @@ export interface TestGameView {
   mySecret: string | null;
 }
 
-/** Minimal game used to exercise the session pipeline without Pocket Legions. */
+/** Minimal game used to exercise the session pipeline without Skirmora. */
 export const testGameModule: GameModule<TestGameState, TestGameSettings, TestGameView> = {
   type: "test-game",
   minPlayers: 2,

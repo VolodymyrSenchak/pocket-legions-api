@@ -1,9 +1,9 @@
 import { armyPoints, gearCap, Placement } from "../engine/army";
 import type { BattleState, GameEvent, Status } from "../engine/state";
 import type { Army, Cell, GameMode, HeroAbilityId, ItemId, MapId, RaceId, UnitId } from "../engine/types";
-import { deployZoneOf } from "./pocketLegions.actions";
-import { buildHints, Hints } from "./pocketLegions.hints";
-import { Ctx, GameResult, PocketLegionsState, seatOf } from "./pocketLegions.state";
+import { deployZoneOf } from "./skirmora.actions";
+import { buildHints, Hints } from "./skirmora.hints";
+import { Ctx, GameResult, SkirmoraState, seatOf } from "./skirmora.state";
 
 // Plan §7.5. Whitelist: every field is copied on purpose, so hidden data (other armies and deployments
 // before the battle) can't slip through. No time-derived fields — the view only changes with the state (ETag).
@@ -61,8 +61,8 @@ export interface BattleView {
   walls: { x: number; y: number; untilRound: number }[];
 }
 
-export interface PocketLegionsView {
-  phase: PocketLegionsState["phase"];
+export interface SkirmoraView {
+  phase: SkirmoraState["phase"];
   mapId: MapId;
   mode: GameMode;
   budget: number;
@@ -120,7 +120,7 @@ function battleView(battle: BattleState): BattleView {
   };
 }
 
-export function project(state: PocketLegionsState, viewerId: string, ctx: Pick<Ctx, "settings">): PocketLegionsView {
+export function project(state: SkirmoraState, viewerId: string, ctx: Pick<Ctx, "settings">): SkirmoraView {
   const me = seatOf(state, viewerId);
   const { settings } = ctx;
   let mine: MyArmyView | null = null;

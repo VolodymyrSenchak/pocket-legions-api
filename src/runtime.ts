@@ -2,7 +2,7 @@ import { Server as HttpServer } from "node:http";
 import { Application } from "express";
 import { createApp, AppOptions } from "./app";
 import { AnyGameModule } from "./games/gameModule";
-import { pocketLegionsModule } from "./game/pocketLegions.module";
+import { skirmoraModule } from "./game/skirmora.module";
 import { Broadcaster } from "./realtime/broadcaster";
 import { LocalSessions } from "./realtime/localSessions";
 import { SessionBus, SupabaseRealtimeBus } from "./realtime/sessionBus";
@@ -36,7 +36,7 @@ export interface Runtime {
 /** Composition root: one instance = one Express app + (optionally) one Socket.IO server. */
 export function createRuntime(options: RuntimeOptions): Runtime {
   const { repository, bus } = options;
-  const module = options.module ?? pocketLegionsModule;
+  const module = options.module ?? skirmoraModule;
   const clock = options.clock ?? (() => new Date());
   const rng = options.rng ?? cryptoRng;
 

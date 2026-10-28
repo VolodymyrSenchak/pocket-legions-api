@@ -1,13 +1,13 @@
-# Pocket Legions API — Implementation Plan
+# Skirmora API — Implementation Plan
 
-Source requirements: [pocket-legions.game-design.md](../../../design/pocket-legions.game-design.md) (a snapshot of the live design doc, https://claude.ai/artifact/YGKQ9ovR88U6e6LiBNWTBA; the live doc wins if they differ).
+Source requirements: [skirmora.game-design.md](../../../design/skirmora.game-design.md) (a snapshot of the live design doc, https://claude.ai/artifact/YGKQ9ovR88U6e6LiBNWTBA; the live doc wins if they differ).
 Reference implementation: [sen-reveal-api](../../../../../sen-reveal/sen-reveal-api/README.md) and its [implementation plan](../../../../../sen-reveal/sen-reveal-api/docs/implementation/sen-reveal.api.implementation-plan.md). This plan reuses its sections by number (for example "SR §3.4") and only spells out what differs.
-Client: [pocket-legions.app.implementation-plan.md](../../../pocket-legions-app/docs/implementation/pocket-legions.app.implementation-plan.md).
+Client: [skirmora.app.implementation-plan.md](../../../skirmora-app/docs/implementation/skirmora.app.implementation-plan.md).
 
-This plan covers the backend (HTTP + WebSocket API) for Pocket Legions: a turn-based tactics game for 2–4 players. Each player picks a race and buys an army and hero gear from a fixed budget. Then the players deploy on a grid map and fight until one side is left.
+This plan covers the backend (HTTP + WebSocket API) for Skirmora: a turn-based tactics game for 2–4 players. Each player picks a race and buys an army and hero gear from a fixed budget. Then the players deploy on a grid map and fight until one side is left.
 
 **Confirmed decisions**
-- **A separate repo, `pocket-legions-api`.** It is *not* a module inside sen-reveal-api. It copies sen-reveal-api's architecture and infrastructure code (§5), and keeps the copied files close to the originals so fixes can be ported between the two repos.
+- **A separate repo, `skirmora-api`.** It is *not* a module inside sen-reveal-api. It copies sen-reveal-api's architecture and infrastructure code (§5), and keeps the copied files close to the originals so fixes can be ported between the two repos.
 - Hosting: **Vercel**. Real-time sync uses **Vercel Functions WebSockets** (public beta) with Socket.IO, with **HTTP short polling as a fallback** (SR §3.1).
 - **Supabase is only the database**: one table plus a presence RPC. Supabase Realtime is used only as a server-to-server relay (SR §3.2). Clients never talk to Supabase.
 - **The server is the authority** on every rule. Clients send intents and render per-player projected snapshots (SR §3.5).
@@ -15,7 +15,7 @@ This plan covers the backend (HTTP + WebSocket API) for Pocket Legions: a turn-b
 - 2–4 players. Modes: free-for-all and 2 vs 2. **No joining after `lobby.start`.**
 - Randomness comes from the server's `ctx.rng` (crypto). No seed is stored, so nobody can predict a roll (§3.2).
 - Battle events (moves, hits, deaths) travel **inside the snapshot** as a capped, numbered list. They are never pushed separately, so SR's "snapshots only" rule holds (§3.4).
-- Turn timer without any background job: the state stores a deadline, and any client may send `pocket-legions.claimTimeout` after it passes (§3.5).
+- Turn timer without any background job: the state stores a deadline, and any client may send `skirmora.claimTimeout` after it passes (§3.5).
 - Table `pocket_legions_session`. As in sen-reveal, **the owner creates the DB objects manually** (§4.1). It may live in the same Supabase project as sen-reveal.
 - Vercel plan: **Hobby** (same limits as SR §12.1; quotas are probably per account and therefore shared with sen-reveal, which needs checking).
 
@@ -54,10 +54,10 @@ This plan covers the backend (HTTP + WebSocket API) for Pocket Legions: a turn-b
 ## 3. Architecture decisions
 
 ### 3.1 Inherited unchanged from sen-reveal
-| SR section | Topic | Delta for Pocket Legions |
+| SR section | Topic | Delta for Skirmora |
 |---|---|---|
 | §3.1 | WebSockets on Vercel + polling fallback, 300 s connection lifetime | A battle lasts 10–25 min, so expect 2–5 planned reconnects per battle. The 20 min idle disconnect can't fire mid-battle because the turn timer keeps the session changing |
-| §3.2 | Supabase Realtime Broadcast as a server-only relay | Topic `pocket-legions-session:<sessionId>` |
+| §3.2 | Supabase Realtime Broadcast as a server-only relay | Topic `skirmora-session:<sessionId>` |
 | §3.3 | One row per session, `state jsonb` | Bigger state than sen-reveal. Static data (map obstacles, unit stats) is never stored, only ids. The event list in `state` is capped (§3.4). Target: well under 100 KB per row |
 | §3.4 | Optimistic locking (`version`, compare-and-swap, 10 jittered retries) | In battle only the active player acts, so conflicts come mostly from simultaneous army/deploy submits and `claimTimeout` races |
 | §3.5 | Server-side projection, RLS on with no policies, whitelist projection | What is hidden: §7.5 |
@@ -86,7 +86,7 @@ src/game/     the GameModule: state machine, zod payload schemas, projection, ev
 
 ### 3.5 Turn timer without a scheduler
 - When a turn starts, the handler sets `battle.turnDeadline = ctx.now + settings.turnSeconds`. It is an ISO string in state, so it is deterministic in the view.
-- Any player may send `pocket-legions.claimTimeout`. The handler accepts it only if `ctx.now >= turnDeadline`, otherwise it returns `409 too-early`. It then puts the active player's first unactivated stack into **defend** and passes the turn. Because the version changes, a second claim fails with `conflict` and can be ignored.
+- Any player may send `skirmora.claimTimeout`. The handler accepts it only if `ctx.now >= turnDeadline`, otherwise it returns `409 too-early`. It then puts the active player's first unactivated stack into **defend** and passes the turn. Because the version changes, a second claim fails with `conflict` and can be ignored.
 - Clients send the claim when their clock passes `turnDeadline + 1 s`. The server decides with its own clock, so a wrong client clock can only make a claim early (rejected) or late (harmless).
 - Consecutive timeouts per player are counted. **3 timeouts in a row (≈ 2.25 min at 45 s) = automatic surrender** (§12.1, design §3).
 
@@ -150,7 +150,7 @@ Checklist:
 - [x] partial unique index on `code where archived = false`
 - [x] RLS enabled, no policies
 - [x] function `pocket_legions_session_presence(uuid, uuid[], boolean)`
-- [x] Realtime enabled, no `realtime.messages` policy that lets `anon`/`authenticated` join `pocket-legions-session:*`
+- [x] Realtime enabled, no `realtime.messages` policy that lets `anon`/`authenticated` join `skirmora-session:*`
 
 Done by the owner (2026-10-27) in the same Supabase project as sen-reveal; `npm run smoke:db` and `npm run smoke:relay` pass against it.
 
@@ -158,8 +158,8 @@ Done by the owner (2026-10-27) in the same Supabase project as sen-reveal; `npm 
 ```ts
 interface SessionState {
   players: PlayerRecord[];            // copied as is (SR §4.2)
-  settings: CoreSettings & PocketLegionsSettings;
-  game: PocketLegionsState | null;         // null while pending (§7.2)
+  settings: CoreSettings & SkirmoraSettings;
+  game: SkirmoraState | null;         // null while pending (§7.2)
 }
 ```
 `CoreSettings.allowJoinInProgress` is always `false`. `maxPlayers` is 2–4.
@@ -175,14 +175,14 @@ src/
   app.ts, index.ts, runtime.ts          C  (runtime: registry removed, the single module injected)
   models/
     result.ts                           A  + error codes 'too-early', 'outdated', 'invalid-army', 'invalid-deploy', 'not-your-turn', 'illegal-action'
-    session.model.ts, session.schemas.ts A  (no gameType; settings schema is PocketLegions's)
+    session.model.ts, session.schemas.ts A  (no gameType; settings schema is Skirmora's)
     action.model.ts                     C
   services/                             C  session.service, lobby.actions, roster, presence, sessionView,
                                            sessionRepository.service (table/RPC names), sessionRepository.memory
   realtime/                             C  socketServer, sessionBus (topic name), broadcaster, localSessions,
                                            presenceTracker, maintenanceTick
   routes/, middlewares/, utils/         C  (corsUtils reads CORS_ORIGINS from env only)
-  testing/harness.ts                    A  (in-memory runtime with the pocket-legions module)
+  testing/harness.ts                    A  (in-memory runtime with the skirmora module)
   games/
     gameModule.ts                       C  the GameModule interface (SR §6), kept so the dispatcher stays identical
   engine/                               N  §6 — pure, shared with the client
@@ -199,10 +199,10 @@ src/
     battle.ts                           applyAction(battleState, action, rng) → { state, events }
     victory.ts                          elimination, teams, round limit and points
   game/                                 N  §7 — the GameModule
-    pocketLegions.module.ts, pocketLegions.state.ts, pocketLegions.actions.ts, pocketLegions.projection.ts, pocketLegions.hints.ts
+    skirmora.module.ts, skirmora.state.ts, skirmora.actions.ts, skirmora.projection.ts, skirmora.hints.ts
 ```
 
-The `GameRegistry` is dropped. The dispatcher routes `lobby.*` to lobby actions and `pocket-legions.*` to the one module, and rejects any other namespace with `400`.
+The `GameRegistry` is dropped. The dispatcher routes `lobby.*` to lobby actions and `skirmora.*` to the one module, and rejects any other namespace with `400`.
 
 Dependencies are the same as sen-reveal-api: `express`, `socket.io`, `zod`, `express-rate-limit`, `@supabase/supabase-js`, `cors`, `dotenv`. Dev: `vitest`, `supertest`, `socket.io-client`, `ts-node`, `nodemon`. Node ≥ 22.
 
@@ -279,7 +279,7 @@ Every ability in design §6 needs at least one unit test that shows the effect a
 
 ### 7.1 Settings (`settingsSchema`, validated on create)
 ```ts
-interface PocketLegionsSettings {
+interface SkirmoraSettings {
   mapId: MapId;                         // one of 8
   budget: 500 | 1000 | 1500 | 2000;     // default 1000
   mode: 'ffa' | 'teams';                // 'teams' requires exactly 4 players at start
@@ -291,7 +291,7 @@ interface PocketLegionsSettings {
 
 ### 7.2 State
 ```ts
-interface PocketLegionsState {
+interface SkirmoraState {
   phase: 'army' | 'deploy' | 'battle' | 'over';
   seats: Seat[];                        // in join order at start
   battle: BattleState | null;
@@ -325,7 +325,7 @@ interface BattleState {
 }
 ```
 
-### 7.3 Actions (`pocket-legions.<name>`; game actions require `status === 'in_progress'`, SR §6)
+### 7.3 Actions (`skirmora.<name>`; game actions require `status === 'in_progress'`, SR §6)
 | Action | Phase | Who | Payload | Effect / errors |
 |---|---|---|---|---|
 | `pickRace` | army | any seat | `{ raceId }` | Sets the race and clears the army. Rejected once `armyReady` |
@@ -375,7 +375,7 @@ The end of a battle moves to phase `over` but keeps the session `in_progress`, s
 
 Identical to SR §7.1–7.4. Two additions to `dispatchAction`:
 - After resolving the actor: if `settings.dataVersion !== DATA_VERSION` → `409 outdated`.
-- The router: `lobby.*` → lobby actions, `pocket-legions.*` → module actions, anything else → `400`.
+- The router: `lobby.*` → lobby actions, `skirmora.*` → module actions, anything else → `400`.
 
 ---
 
@@ -388,13 +388,13 @@ Same as SR §9, with these changes:
 | `POST /api/sessions` | `{ nickname, password?, settings: { mapId, budget, mode, turnSeconds } }` | `201 { playerId, playerToken, session }` |
 | `GET /api/sessions/:code/info` | — | `{ code, status, requiresPassword, playerCount, maxPlayers, joinable, expiresAt, mapId, mode, budget }` |
 | `POST /api/sessions/:code/join` | `{ nickname, password? }` | as SR. `409 session-started` after `lobby.start` |
-| `GET /api/sessions/:code/state` | — | `SessionView<PocketLegionsView>` + ETag |
+| `GET /api/sessions/:code/state` | — | `SessionView<SkirmoraView>` + ETag |
 | `POST /api/sessions/:code/actions` | `{ type, payload }` | `SessionView` |
 | `GET /api/sessions/:code/history` | — | `GameEvent[]` (full log, capped) |
 
 Socket.IO events are identical (SR §9.2). The client contract is SR §9.3 plus:
 1. Animate `game.events` with `seq > lastAnimatedSeq`; on a gap, skip to the state (§3.4).
-2. Send `pocket-legions.claimTimeout` once when the local clock passes `turnDeadline + 1 s`. Ignore `too-early` and `conflict`.
+2. Send `skirmora.claimTimeout` once when the local clock passes `turnDeadline + 1 s`. Ignore `too-early` and `conflict`.
 3. On `409 outdated`, show "The game was updated" and offer a new room.
 4. Compare `settings.dataVersion` with the client's synced `DATA_VERSION`. If they differ, prompt a reload before acting.
 
@@ -428,10 +428,10 @@ Each phase ends in a working, tested state. Phases 1–3 need no DB and no netwo
 - [x] `pathfinding.ts`, `los.ts`, `army.ts`, `damage.ts` (+ `preview`), `abilities.ts`, `turns.ts`, `battle.ts`, `victory.ts`.
 - [x] Unit tests per §6.9 and every ability. The fuzz test.
 - **Done when:** 500 fuzz battles pass the invariants with a seeded rng, and every ability has tests.
-- **Status (commit 2c42061):** done. Extra files: `state.ts` (battle state, events), `stats.ts` (effective stats), `effects.ts` (damage/heal/status primitives), `heroes.ts` (hero abilities). `BattleState` also has `order`, `turn`, `bonusStackId` (morale) and `killedThisRound` (necromancy). The projection part of the fuzz invariants is checked in Phase 3 (`pocketLegions.fuzz.test.ts`). Rule interpretations where the design is silent (magic sources for stone skin, heal without revive, skip timing, splash rules, mantle power, 2 vs 2 corners and turn order) are listed in the session notes and should be confirmed in playtests.
+- **Status (commit 2c42061):** done. Extra files: `state.ts` (battle state, events), `stats.ts` (effective stats), `effects.ts` (damage/heal/status primitives), `heroes.ts` (hero abilities). `BattleState` also has `order`, `turn`, `bonusStackId` (morale) and `killedThisRound` (necromancy). The projection part of the fuzz invariants is checked in Phase 3 (`skirmora.fuzz.test.ts`). Rule interpretations where the design is silent (magic sources for stone skin, heal without revive, skip timing, splash rules, mantle power, 2 vs 2 corners and turn order) are listed in the session notes and should be confirmed in playtests.
 
 ### Phase 3 — Game module
-- [x] `pocketLegions.state.ts`, `pocketLegions.actions.ts` (§7.3), `pocketLegions.hints.ts`, `pocketLegions.projection.ts` (§7.5), `pocketLegions.module.ts`. Wire it into the dispatcher.
+- [x] `skirmora.state.ts`, `skirmora.actions.ts` (§7.3), `skirmora.hints.ts`, `skirmora.projection.ts` (§7.5), `skirmora.module.ts`. Wire it into the dispatcher.
 - **Unit tests:**
   - other armies hidden in the army phase and deployments hidden until battle, asserted on the **whole serialized view**;
   - hints equal what `act` accepts: for every hint, `act` succeeds; for a sample of non-hint cells, `act` fails;
@@ -452,7 +452,7 @@ Each phase ends in a working, tested state. Phases 1–3 need no DB and no netwo
 - [x] **Integration test** (supertest, in-memory repo, seeded rng): 2 players create/join → start → armies → deploy → battle to the end using `/actions` + `/state`. Simultaneous `submitArmy` from 4 players loses nothing.
 - **Done when:** the integration test passes and the smoke script passes against Supabase.
 
-- **Status (commit 0e34527):** done. `smoke:db` passes against the real table (it leaves one row that expires in 24 h). Additions: `GameModule.rejectSession` gives `409 outdated` on every action, lobby ones included, and on the socket handshake (`/state` stays readable). `GameModule.publicInfo` adds `mapId`, `mode` and `budget` to `/info`. The integration test is `src/game/pocketLegions.integration.test.ts`.
+- **Status (commit 0e34527):** done. `smoke:db` passes against the real table (it leaves one row that expires in 24 h). Additions: `GameModule.rejectSession` gives `409 outdated` on every action, lobby ones included, and on the socket handshake (`/state` stays readable). `GameModule.publicInfo` adds `mapId`, `mode` and `budget` to `/info`. The integration test is `src/game/skirmora.integration.test.ts`.
 
 ### Phase 5 — Real-time
 - [x] Copied `realtime/` with the renamed topic, and the copied integration tests adapted.
@@ -463,12 +463,12 @@ Each phase ends in a working, tested state. Phases 1–3 need no DB and no netwo
 - [ ] Manual Vercel preview test: 2 browsers play a full battle across at least one forced reconnect.
 - **Done when:** the tests pass and the preview battle survives reconnects.
 
-- **Status (commit 5286ee2):** done except the manual Vercel preview test (needs the Vercel project, Phase 7). The new tests are in `src/game/pocketLegions.realtime.test.ts`; the two-instance helper moved to `src/testing/cluster.ts`. A new `npm run smoke:relay` checks the real Supabase relay on `pocket-legions-session:<id>`. Its first run failed once with `MissingPartition` (Realtime had no `realtime.messages` partition yet in an idle project), then it passed three times in a row. The maintenance tick covers such a lost message.
+- **Status (commit 5286ee2):** done except the manual Vercel preview test (needs the Vercel project, Phase 7). The new tests are in `src/game/skirmora.realtime.test.ts`; the two-instance helper moved to `src/testing/cluster.ts`. A new `npm run smoke:relay` checks the real Supabase relay on `skirmora-session:<id>`. Its first run failed once with `MissingPartition` (Realtime had no `realtime.messages` partition yet in an idle project), then it passed three times in a row. The maintenance tick covers such a lost message.
 
 ### Phase 6 — Hardening and contract
 - [ ] WAF rule (SR Phase 6). *Owner, in the Vercel dashboard once the project exists.*
 - [x] In-app limits, socket payload guard, structured logs (copied from sen-reveal-api).
-- [x] `docs/implementation/pocket-legions.api-contract.md`: endpoints, socket events, client rules (§9), and example `SessionView`s for army, deploy, battle (as the active and as a waiting player) and over.
+- [x] `docs/implementation/skirmora.api-contract.md`: endpoints, socket events, client rules (§9), and example `SessionView`s for army, deploy, battle (as the active and as a waiting player) and over.
 
 - **Status:** done except the WAF rule. Measured on random battles: the largest stored state was 82 KB (845 history events, about 85 bytes each) and the largest view 24 KB. A long 4-player battle can pass the 100 KB per row target (§3.1, the SR §3.3 row) because of `history` (see §12.5).
 
@@ -482,7 +482,7 @@ Each phase ends in a working, tested state. Phases 1–3 need no DB and no netwo
 ---
 
 ## 11. Future work
-- **Shared infrastructure package.** Once both repos are stable, extract `services/`, `realtime/`, `routes/`, `middlewares/` into a private package used by sen-reveal-api and pocket-legions-api. Until then, port fixes by diffing against the recorded source commit.
+- **Shared infrastructure package.** Once both repos are stable, extract `services/`, `realtime/`, `routes/`, `middlewares/` into a private package used by sen-reveal-api and skirmora-api. Until then, port fixes by diffing against the recorded source commit.
 - Keep the previous data module for 24 h so balance deploys don't end running games (§3.6).
 - AI opponent built on the engine's hints (a greedy bot is a good first step), spectators, replays from `history`.
 - Upstash/Ably swap-ins exactly as SR §11.
@@ -495,7 +495,7 @@ Each phase ends in a working, tested state. Phases 1–3 need no DB and no netwo
 3. **Gear budget:** one budget shared by units and gear, with gear capped at 30% of it (`validateArmy`).
 4. **Balance deploys** end running games with `409 outdated` (§3.6). Accepted for now; deploy when nobody plays.
 5. **History size:** `state.history` stays capped at 3000 events (up to ≈ 260 KB per row in a very long battle), above the 100 KB target in §3.1. Accepted.
-6. **Rematch** (client plan §15.2): in the same room. `pocket-legions.rematch` (host, phase `over`) goes back to `army` with the same seats, races and armies (not ready). So the end of a battle no longer finishes the session: it stays `in_progress` in phase `over` until the host ends it, a rematch starts, or fewer than 2 players are left.
+6. **Rematch** (client plan §15.2): in the same room. `skirmora.rematch` (host, phase `over`) goes back to `army` with the same seats, races and armies (not ready). So the end of a battle no longer finishes the session: it stays `in_progress` in phase `over` until the host ends it, a rematch starts, or fewer than 2 players are left.
 7. **Lobby settings** (client plan §15.3): the host may change them before the start with `lobby.updateSettings` (any subset of the create settings, validated the same way; `maxPlayers` can't drop below the players already in).
 8. **`dist/` on Vercel:** committed, as in sen-reveal.
 9. **Rule interpretations** where the design is silent: accepted as implemented, and written into the design doc (§3, "Уточнення правил"). Playtests may change them:

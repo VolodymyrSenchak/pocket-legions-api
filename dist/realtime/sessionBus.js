@@ -80,7 +80,7 @@ class SupabaseRealtimeBus {
         this.subscriber = subscriber;
     }
     static topic(sessionId) {
-        return `pocket-legions-session:${sessionId}`;
+        return `skirmora-session:${sessionId}`;
     }
     async publish(sessionId, message) {
         const channel = this.publisher.channel(SupabaseRealtimeBus.topic(sessionId), { config: { private: true } });

@@ -1,10 +1,10 @@
-# Pocket Legions API — contract for the client
+# Skirmora API — contract for the client
 
-The server is the authority on every rule. The client sends intents and renders the snapshot (`SessionView`) it gets for its own player. This file covers what the client needs: endpoints, socket events, client rules and example views. The reasoning is in [pocket-legions.api.implementation-plan.md](pocket-legions.api.implementation-plan.md) (§3, §7, §9). The infrastructure is the same as sen-reveal-api ("SR §9").
+The server is the authority on every rule. The client sends intents and renders the snapshot (`SessionView`) it gets for its own player. This file covers what the client needs: endpoints, socket events, client rules and example views. The reasoning is in [skirmora.api.implementation-plan.md](skirmora.api.implementation-plan.md) (§3, §7, §9). The infrastructure is the same as sen-reveal-api ("SR §9").
 
 Types live in the repo and the client copies them with `engine/` and `game/`:
-- `PocketLegionsView`, `SeatView`, `BattleView`, `StackView`, `MyArmyView` — `src/game/pocketLegions.projection.ts`
-- `Hints` — `src/game/pocketLegions.hints.ts`
+- `SkirmoraView`, `SeatView`, `BattleView`, `StackView`, `MyArmyView` — `src/game/skirmora.projection.ts`
+- `Hints` — `src/game/skirmora.hints.ts`
 - `GameEvent`, `Status` — `src/engine/state.ts`
 - unit, item and map ids — `src/engine/data/*`
 
@@ -32,7 +32,7 @@ Settings (validated on create, defaults in brackets):
 
 ## 2. Actions
 
-`lobby.*`: `start`, `kick`, `transferHost`, `leave`, `end` (as in SR), plus `updateSettings`: host only, before the start, payload = any subset of the create settings. It returns `400` for bad values and `409` once started or if `maxPlayers` is below the players already in. Game actions are `pocket-legions.<name>`. They need `status === 'in_progress'`, otherwise you get `409 conflict`.
+`lobby.*`: `start`, `kick`, `transferHost`, `leave`, `end` (as in SR), plus `updateSettings`: host only, before the start, payload = any subset of the create settings. It returns `400` for bad values and `409` once started or if `maxPlayers` is below the players already in. Game actions are `skirmora.<name>`. They need `status === 'in_progress'`, otherwise you get `409 conflict`.
 
 | Action | Phase | Who | Payload | Errors |
 |---|---|---|---|---|
@@ -89,7 +89,7 @@ Limits: the action payload is at most 32 KB, 30 actions per 10 s per socket, and
 
 SR §9.3 applies as is: store the token, reconnect, accept a snapshot only if `version` ≥ yours, fall back to polling. On top of that:
 1. **Animations.** Animate `game.events` whose `seq > lastAnimatedSeq`, in order. If the first event of a snapshot is newer than `lastAnimatedSeq + 1` (a gap after a reconnect), skip the animation, render the state, and set `lastAnimatedSeq` to the last `seq`.
-2. **Turn timer.** Show the countdown from `battle.turnDeadline` against your own clock. When your clock passes `turnDeadline + 1 s`, send `pocket-legions.claimTimeout` once, from any seat. Ignore `too-early` and `conflict`. Three timeouts in a row of one seat mean it surrenders automatically.
+2. **Turn timer.** Show the countdown from `battle.turnDeadline` against your own clock. When your clock passes `turnDeadline + 1 s`, send `skirmora.claimTimeout` once, from any seat. Ignore `too-early` and `conflict`. Three timeouts in a row of one seat mean it surrenders automatically.
 3. **Moves.** Offer only what `game.hints` offers. Hints are present only for the active seat. `attacks[].from` lists the cells to attack from, and `preview` is computed for `from[0]`. `shots[].penalty` explains a halved shot.
 4. **Morale.** `battle.bonusStackId` set means that stack acts once more (the hints then contain only it).
 5. **Versions.** On `409 outdated` show "The game was updated — start a new room". If `settings.dataVersion` differs from the client's synced `DATA_VERSION`, prompt a reload before acting.
@@ -235,4 +235,4 @@ The same `battle` and `events`, with `"mySeat": 1` and `"hints": null`.
 }
 ```
 
-The session stays `in_progress` so the host can send `pocket-legions.rematch`: the game goes back to `army` with everyone's race and army kept in `mine.army` (resubmit it to be ready). The session finishes with `lobby.end` or when fewer than 2 players are left. The final `battle.stacks` are kept, and after the round limit `result.points` holds the living army points per seat in `battle.order`.
+The session stays `in_progress` so the host can send `skirmora.rematch`: the game goes back to `army` with everyone's race and army kept in `mine.army` (resubmit it to be ready). The session finishes with `lobby.end` or when fewer than 2 players are left. The final `battle.stacks` are kept, and after the round limit `result.points` holds the living army points per seat in `battle.order`.

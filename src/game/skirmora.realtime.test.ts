@@ -3,12 +3,12 @@ import { SessionView } from "../models";
 import { actionsFromHints } from "../testing/game";
 import { Cluster, createCluster, TestClient } from "../testing/cluster";
 import { createSeededRng } from "../utils/random";
-import { pocketLegionsModule } from "./pocketLegions.module";
-import type { PocketLegionsView } from "./pocketLegions.projection";
+import { skirmoraModule } from "./skirmora.module";
+import type { SkirmoraView } from "./skirmora.projection";
 
 // Plan Phase 5: two servers sharing an in-memory bus.
 
-const gameOf = (view: SessionView) => view.game as PocketLegionsView | null;
+const gameOf = (view: SessionView) => view.game as SkirmoraView | null;
 const SECRET_ARMY = { stacks: [{ unitId: "angel", count: 1 }, { unitId: "paladin", count: 2 }], items: { neck: "clover" }, rings: [] };
 const OTHER_ARMY = { stacks: [{ unitId: "goblin", count: 20 }], items: {}, rings: [] };
 
@@ -24,19 +24,19 @@ async function toBattle(cluster: Cluster, check?: (ann: TestClient, ben: TestCli
   const ann = await cluster.connect(cluster.a, annPlayer);
   const ben = await cluster.connect(cluster.b, benPlayer);
   await ack(ann, "lobby.start");
-  await ack(ann, "pocket-legions.pickRace", { raceId: "knights" });
-  await ack(ben, "pocket-legions.pickRace", { raceId: "barbarians" });
-  await ack(ann, "pocket-legions.submitArmy", SECRET_ARMY);
-  await ack(ben, "pocket-legions.submitArmy", OTHER_ARMY);
-  await ack(ann, "pocket-legions.submitDeploy", { placements: [{ stackIndex: 0, x: 0, y: 4 }, { stackIndex: 1, x: 1, y: 6 }] });
+  await ack(ann, "skirmora.pickRace", { raceId: "knights" });
+  await ack(ben, "skirmora.pickRace", { raceId: "barbarians" });
+  await ack(ann, "skirmora.submitArmy", SECRET_ARMY);
+  await ack(ben, "skirmora.submitArmy", OTHER_ARMY);
+  await ack(ann, "skirmora.submitDeploy", { placements: [{ stackIndex: 0, x: 0, y: 4 }, { stackIndex: 1, x: 1, y: 6 }] });
   await ben.waitForState((view) => gameOf(view)?.seats[0].deployReady === true, "Ann deployed");
   check?.(ann, ben);
-  await ack(ben, "pocket-legions.submitDeploy", { placements: [{ stackIndex: 0, x: 9, y: 4 }] });
+  await ack(ben, "skirmora.submitDeploy", { placements: [{ stackIndex: 0, x: 9, y: 4 }] });
   await Promise.all([ann, ben].map((client) => client.waitForState((view) => gameOf(view)?.phase === "battle", "battle")));
   return { ann, ben };
 }
 
-describe("pocket-legions realtime (two instances)", () => {
+describe("skirmora realtime (two instances)", () => {
   let cluster: Cluster;
 
   afterEach(async () => {
@@ -44,7 +44,7 @@ describe("pocket-legions realtime (two instances)", () => {
   });
 
   it("no payload to Ben carries Ann's army or deployment before the battle", async () => {
-    cluster = await createCluster({ module: pocketLegionsModule });
+    cluster = await createCluster({ module: skirmoraModule });
     const { ben } = await toBattle(cluster, (_ann, benBefore) => {
       const traffic = JSON.stringify(benBefore.events);
       for (const secret of ["angel", "paladin", "clover", "stackIndex"]) expect(traffic).not.toContain(secret);
@@ -54,7 +54,7 @@ describe("pocket-legions realtime (two instances)", () => {
   });
 
   it("an act on instance A reaches the client on instance B with its events in order", async () => {
-    cluster = await createCluster({ module: pocketLegionsModule });
+    cluster = await createCluster({ module: skirmoraModule });
     const { ann, ben } = await toBattle(cluster);
     const clients = { 0: ann, 1: ben } as Record<number, TestClient>;
     const rng = createSeededRng(4);
@@ -62,7 +62,7 @@ describe("pocket-legions realtime (two instances)", () => {
       const active = clients[gameOf(ann.latest)!.battle!.activeSeat];
       const watcher = active === ann ? ben : ann;
       const hints = gameOf(active.latest)!.hints!;
-      const after = await ack(active, "pocket-legions.act", rng.pick(actionsFromHints(hints)));
+      const after = await ack(active, "skirmora.act", rng.pick(actionsFromHints(hints)));
       const seen = await watcher.waitForState((view) => view.version === after.version, "the act");
       expect(gameOf(seen)!.events).toEqual(gameOf(after)!.events);
       await active.waitForState((view) => view.version === after.version, "own push");
@@ -80,11 +80,11 @@ describe("pocket-legions realtime (two instances)", () => {
   });
 
   it("two claimTimeouts on different instances: exactly one is applied", async () => {
-    cluster = await createCluster({ module: pocketLegionsModule });
+    cluster = await createCluster({ module: skirmoraModule });
     const { ann, ben } = await toBattle(cluster);
     const deadline = Date.parse(gameOf(ann.latest)!.battle!.turnDeadline);
     cluster.setClockOffset(deadline - Date.now() + 1000);
-    const acks = await Promise.all([ann.action("pocket-legions.claimTimeout"), ben.action("pocket-legions.claimTimeout")]);
+    const acks = await Promise.all([ann.action("skirmora.claimTimeout"), ben.action("skirmora.claimTimeout")]);
     expect(acks.filter((response) => response.ok)).toHaveLength(1);
     // the loser re-runs on the new state, whose deadline lies ahead
     expect(acks.find((response) => !response.ok)).toMatchObject({ ok: false, error: { code: "too-early" } });
@@ -93,7 +93,7 @@ describe("pocket-legions realtime (two instances)", () => {
   });
 
   it("refuses the socket of a session made with other game data", async () => {
-    cluster = await createCluster({ module: pocketLegionsModule });
+    cluster = await createCluster({ module: skirmoraModule });
     const [annPlayer] = await cluster.lobby(["Ann", "Ben"], { mapId: "arena" });
     const { repository } = cluster;
     const row = (await repository.findLiveByCode(annPlayer.code)).result!;

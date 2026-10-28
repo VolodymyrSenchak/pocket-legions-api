@@ -11,7 +11,7 @@ exports.fail = fail;
 const zod_1 = require("zod");
 const maps_1 = require("../engine/data/maps");
 const version_1 = require("../engine/version");
-exports.GAME_TYPE = "pocket-legions";
+exports.GAME_TYPE = "skirmora";
 // Plan §12.5: kept at 3000 (≈ 260 KB per row at worst) on purpose.
 exports.HISTORY_LIMIT = 3000;
 /** Plan §3.5, confirmed in §12.1: 3 timed-out turns in a row = automatic surrender. */
@@ -89,4 +89,4 @@ function fail(error, errorStatus, errorCode, errorReason) {
         isSuccess: false,
     };
 }
-//# sourceMappingURL=pocketLegions.state.js.map
+//# sourceMappingURL=skirmora.state.js.map

@@ -25,20 +25,20 @@ import {
   Ctx,
   fail,
   ok,
-  PocketLegionsState,
+  SkirmoraState,
   Seat,
   seatOf,
   Settings,
   startProblem,
-} from "./pocketLegions.state";
+} from "./skirmora.state";
 
 // Plan §7.3. Every handler is pure: it returns a new state built from a copy.
 
-type Transition = Result<GameTransition<PocketLegionsState>>;
-type Handler<T> = (ctx: Ctx, state: PocketLegionsState, payload: T) => Transition;
+type Transition = Result<GameTransition<SkirmoraState>>;
+type Handler<T> = (ctx: Ctx, state: SkirmoraState, payload: T) => Transition;
 
 /** Wraps a handler with the checks every action shares: data version and the game being over. */
-function defineAction<T>(schema: z.ZodType<T>, handle: Handler<T>, options: { whenOver?: boolean } = {}): GameAction<PocketLegionsState, Settings> {
+function defineAction<T>(schema: z.ZodType<T>, handle: Handler<T>, options: { whenOver?: boolean } = {}): GameAction<SkirmoraState, Settings> {
   return {
     schema,
     handle: (ctx, state, payload) => {
@@ -52,14 +52,14 @@ function defineAction<T>(schema: z.ZodType<T>, handle: Handler<T>, options: { wh
   };
 }
 
-const next = (state: PocketLegionsState, finished = false): Transition => ok({ state, ...(finished ? { finished } : {}) });
+const next = (state: SkirmoraState, finished = false): Transition => ok({ state, ...(finished ? { finished } : {}) });
 
-function requireSeat(ctx: Ctx, state: PocketLegionsState): Seat | Transition {
+function requireSeat(ctx: Ctx, state: SkirmoraState): Seat | Transition {
   const seat = seatOf(state, ctx.actorId);
   return seat ?? fail("You have no seat in this game", "forbidden");
 }
 
-function requirePhase(state: PocketLegionsState, phase: PocketLegionsState["phase"]): Transition | null {
+function requirePhase(state: SkirmoraState, phase: SkirmoraState["phase"]): Transition | null {
   return state.phase === phase ? null : fail(`Not possible in the ${state.phase} phase`, "conflict");
 }
 
@@ -70,26 +70,26 @@ function battleEnv(ctx: Ctx): BattleEnv {
 }
 
 /** Teams must both be non-empty with at most 2 players (2 vs 2, or 2 vs 1 after someone left). */
-function teamsProblem(state: PocketLegionsState, ctx: Ctx): string | null {
+function teamsProblem(state: SkirmoraState, ctx: Ctx): string | null {
   if (ctx.settings.mode !== "teams") return null;
   const sizes = [0, 1].map((team) => state.seats.filter((seat) => seat.team === team).length);
   return sizes.every((size) => size >= 1 && size <= 2) ? null : "Teams must be 2 vs 2";
 }
 
-export function deployZoneOf(ctx: Pick<Ctx, "settings">, state: PocketLegionsState, seat: Seat): Cell[] {
+export function deployZoneOf(ctx: Pick<Ctx, "settings">, state: SkirmoraState, seat: Seat): Cell[] {
   const extraRows = seat.army && seat.raceId ? heroBonuses(seat.raceId, equippedItems(seat.army)).fx.deployRows : 0;
   return zoneFor(getMap(ctx.settings.mapId), ctx.settings.mode, state.seats, seat.seat, extraRows);
 }
 
 /** Army → deploy once every seat is ready. */
-function maybeStartDeploy(state: PocketLegionsState): void {
+function maybeStartDeploy(state: SkirmoraState): void {
   if (state.phase === "army" && state.seats.every((seat) => seat.armyReady)) {
     state.phase = "deploy";
   }
 }
 
 /** Deploy → battle once every seat is ready: random first seat, `turnStarted`. */
-function maybeStartBattle(ctx: Ctx, state: PocketLegionsState): void {
+function maybeStartBattle(ctx: Ctx, state: SkirmoraState): void {
   if (state.phase !== "deploy" || !state.seats.every((seat) => seat.deployReady)) return;
   const setup: BattleSetup = {
     mapId: ctx.settings.mapId,
@@ -112,7 +112,7 @@ function maybeStartBattle(ctx: Ctx, state: PocketLegionsState): void {
  * After an engine step: log the events, mirror eliminations, move to `over` when the battle ends.
  * The session stays `in_progress` so the room can play a rematch (client plan §15.2).
  */
-function afterBattleStep(state: PocketLegionsState, events: GameEvent[]): Transition {
+function afterBattleStep(state: SkirmoraState, events: GameEvent[]): Transition {
   const battle = state.battle!;
   state.history = appendHistory(state, events);
   for (const side of battle.sides) {
@@ -142,7 +142,7 @@ const itemsSchema = z.object(
   >
 );
 
-export const pocketLegionsActions: Record<string, GameAction<PocketLegionsState, Settings>> = {
+export const skirmoraActions: Record<string, GameAction<SkirmoraState, Settings>> = {
   pickRace: defineAction(z.object({ raceId: z.enum(RACE_IDS) }), (ctx, state, { raceId }) => {
     const seat = requireSeat(ctx, state);
     if (!isSeat(seat)) return seat;
@@ -307,7 +307,7 @@ export const pocketLegionsActions: Record<string, GameAction<PocketLegionsState,
 };
 
 /** Plan §7.4: before the battle the seat is dropped; in battle it is eliminated. */
-export function onPlayerRemoved(ctx: Ctx, input: PocketLegionsState, playerId: string): GameTransition<PocketLegionsState> {
+export function onPlayerRemoved(ctx: Ctx, input: SkirmoraState, playerId: string): GameTransition<SkirmoraState> {
   const state = structuredClone(input);
   const seat = seatOf(state, playerId);
   if (!seat) return { state: input };

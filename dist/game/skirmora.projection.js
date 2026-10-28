@@ -2,9 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.project = project;
 const army_1 = require("../engine/army");
-const pocketLegions_actions_1 = require("./pocketLegions.actions");
-const pocketLegions_hints_1 = require("./pocketLegions.hints");
-const pocketLegions_state_1 = require("./pocketLegions.state");
+const skirmora_actions_1 = require("./skirmora.actions");
+const skirmora_hints_1 = require("./skirmora.hints");
+const skirmora_state_1 = require("./skirmora.state");
 function battleView(battle) {
     return {
         round: battle.round,
@@ -44,7 +44,7 @@ function battleView(battle) {
     };
 }
 function project(state, viewerId, ctx) {
-    const me = (0, pocketLegions_state_1.seatOf)(state, viewerId);
+    const me = (0, skirmora_state_1.seatOf)(state, viewerId);
     const { settings } = ctx;
     let mine = null;
     if (me && (state.phase === "army" || state.phase === "deploy")) {
@@ -54,7 +54,7 @@ function project(state, viewerId, ctx) {
             budget: settings.budget,
             gearCap: (0, army_1.gearCap)(settings.budget),
             ...points,
-            zone: state.phase === "deploy" ? (0, pocketLegions_actions_1.deployZoneOf)(ctx, state, me) : null,
+            zone: state.phase === "deploy" ? (0, skirmora_actions_1.deployZoneOf)(ctx, state, me) : null,
             deployment: me.deployment ? me.deployment.map((placement) => ({ ...placement })) : null,
         };
     }
@@ -78,9 +78,9 @@ function project(state, viewerId, ctx) {
         mySeat: me ? me.seat : null,
         mine,
         battle: battle ? battleView(battle) : null,
-        hints: battle && me && state.phase === "battle" ? (0, pocketLegions_hints_1.buildHints)(battle, me.seat) : null,
+        hints: battle && me && state.phase === "battle" ? (0, skirmora_hints_1.buildHints)(battle, me.seat) : null,
         events: battle ? battle.events.map((event) => structuredClone(event)) : [],
         result: state.result ? structuredClone(state.result) : null,
     };
 }
-//# sourceMappingURL=pocketLegions.projection.js.map
+//# sourceMappingURL=skirmora.projection.js.map

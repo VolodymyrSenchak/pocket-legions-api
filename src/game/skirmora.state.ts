@@ -8,7 +8,7 @@ import type { GameContext } from "../games/gameModule";
 import type { CoreSettings } from "../models/session.model";
 import type { ErrorCode, ErrorStatus, Result } from "../models/result";
 
-export const GAME_TYPE = "pocket-legions";
+export const GAME_TYPE = "skirmora";
 // Plan §12.5: kept at 3000 (≈ 260 KB per row at worst) on purpose.
 export const HISTORY_LIMIT = 3000;
 /** Plan §3.5, confirmed in §12.1: 3 timed-out turns in a row = automatic surrender. */
@@ -25,7 +25,7 @@ export const settingsSchema = z.object({
   dataVersion: z.unknown().transform(() => DATA_VERSION),
 });
 
-export interface PocketLegionsSettings {
+export interface SkirmoraSettings {
   mapId: MapId;
   budget: (typeof BUDGETS)[number];
   mode: GameMode;
@@ -33,7 +33,7 @@ export interface PocketLegionsSettings {
   dataVersion: string;
 }
 
-export const defaultSettings: PocketLegionsSettings = {
+export const defaultSettings: SkirmoraSettings = {
   mapId: "valley",
   budget: 1000,
   mode: "ffa",
@@ -41,7 +41,7 @@ export const defaultSettings: PocketLegionsSettings = {
   dataVersion: DATA_VERSION,
 };
 
-export type Settings = PocketLegionsSettings & CoreSettings;
+export type Settings = SkirmoraSettings & CoreSettings;
 export type Ctx = GameContext<Settings>;
 
 export interface Seat {
@@ -66,7 +66,7 @@ export interface GameResult {
   points?: number[];
 }
 
-export interface PocketLegionsState {
+export interface SkirmoraState {
   phase: "army" | "deploy" | "battle" | "over";
   seats: Seat[];
   battle: BattleState | null;
@@ -80,7 +80,7 @@ export function mapDef(mapId: MapId) {
 }
 
 /** Player count allowed to start: FFA within the map's range, 2 vs 2 exactly 4. */
-export function startProblem(settings: PocketLegionsSettings, players: number): string | null {
+export function startProblem(settings: SkirmoraSettings, players: number): string | null {
   if (settings.mode === "teams") {
     if (!mapDef(settings.mapId).teams) return "This map has no 2 vs 2 mode";
     return players === 4 ? null : "2 vs 2 needs exactly 4 players";
@@ -89,7 +89,7 @@ export function startProblem(settings: PocketLegionsSettings, players: number): 
   return players >= min && players <= max ? null : `This map is for ${min === max ? min : `${min}–${max}`} players`;
 }
 
-export function createInitialState(ctx: Ctx): Result<PocketLegionsState> {
+export function createInitialState(ctx: Ctx): Result<SkirmoraState> {
   const problem = startProblem(ctx.settings, ctx.activePlayers.length);
   if (problem) return fail(problem, "conflict");
   return ok({
@@ -113,11 +113,11 @@ export function createInitialState(ctx: Ctx): Result<PocketLegionsState> {
   });
 }
 
-export function seatOf(state: PocketLegionsState, playerId: string): Seat | undefined {
+export function seatOf(state: SkirmoraState, playerId: string): Seat | undefined {
   return state.seats.find((seat) => seat.playerId === playerId);
 }
 
-export function appendHistory(state: PocketLegionsState, events: GameEvent[]): GameEvent[] {
+export function appendHistory(state: SkirmoraState, events: GameEvent[]): GameEvent[] {
   const history = [...state.history, ...events];
   return history.length > HISTORY_LIMIT ? history.slice(history.length - HISTORY_LIMIT) : history;
 }

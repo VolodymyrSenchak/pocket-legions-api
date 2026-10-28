@@ -7,12 +7,12 @@ import { randomArmy } from "../testing/fuzz";
 import { actionsFromHints } from "../testing/game";
 import { createHttpHarness, TestPlayer } from "../testing/harness";
 import { createSeededRng } from "../utils/random";
-import { pocketLegionsModule } from "./pocketLegions.module";
-import type { PocketLegionsView } from "./pocketLegions.projection";
+import { skirmoraModule } from "./skirmora.module";
+import type { SkirmoraView } from "./skirmora.projection";
 
 // Plan Phase 4: the whole game over HTTP (`/actions` + `/state`) on the in-memory repository with a seeded rng.
 
-const gameOf = (view: SessionView) => view.game as PocketLegionsView;
+const gameOf = (view: SessionView) => view.game as SkirmoraView;
 
 async function lobby(h: ReturnType<typeof createHttpHarness>, names: string[], settings: Record<string, unknown>) {
   const host = await h.api.createPlayer(names[0], { settings });
@@ -22,9 +22,9 @@ async function lobby(h: ReturnType<typeof createHttpHarness>, names: string[], s
   return players;
 }
 
-describe("pocket-legions over HTTP", () => {
+describe("skirmora over HTTP", () => {
   it("2 players: create, join, start, armies, deploy and a battle to the end", async () => {
-    const h = createHttpHarness({ module: pocketLegionsModule });
+    const h = createHttpHarness({ module: skirmoraModule });
     const pick = createSeededRng(8);
     const players = await lobby(h, ["Ann", "Ben"], { mapId: "valley", budget: 1000, turnSeconds: 30 });
     const map = getMap("valley");
@@ -34,13 +34,13 @@ describe("pocket-legions over HTTP", () => {
 
     for (const player of players) {
       const raceId = pick.pick(RACE_IDS);
-      await h.api.act(player, "pocket-legions.pickRace", { raceId });
-      await h.api.act(player, "pocket-legions.submitArmy", randomArmy(pick, raceId, { budget: 1000, mapSize: map.size, playerCount: 2 }));
+      await h.api.act(player, "skirmora.pickRace", { raceId });
+      await h.api.act(player, "skirmora.submitArmy", randomArmy(pick, raceId, { budget: 1000, mapSize: map.size, playerCount: 2 }));
     }
     for (const player of players) {
       const mine = gameOf(await h.api.view(player)).mine!;
       const placements = mine.zone!.slice(0, mine.army!.stacks.length).map((cell, stackIndex) => ({ stackIndex, ...cell }));
-      await h.api.act(player, "pocket-legions.submitDeploy", { placements });
+      await h.api.act(player, "skirmora.submitDeploy", { placements });
     }
 
     let view = await h.api.view(players[0]);
@@ -55,10 +55,10 @@ describe("pocket-legions over HTTP", () => {
       // now and then the turn times out instead
       if (step % 17 === 16) {
         h.advance(31_000);
-        view = await h.api.act(waiting, "pocket-legions.claimTimeout");
+        view = await h.api.act(waiting, "skirmora.claimTimeout");
       } else {
         const hints = gameOf(await h.api.view(active)).hints!;
-        view = await h.api.act(active, "pocket-legions.act", pick.pick(actionsFromHints(hints)));
+        view = await h.api.act(active, "skirmora.act", pick.pick(actionsFromHints(hints)));
       }
       const seqs = gameOf(view).events.map((event) => event.seq);
       expect(seqs.at(-1)!).toBeGreaterThan(lastSeq);
@@ -73,16 +73,16 @@ describe("pocket-legions over HTTP", () => {
     expect(history.status).toBe(200);
     expect(history.body[0].type).toBe("battleStarted");
     expect(history.body.at(-1).type).toBe("battleOver");
-    expect((await h.api.action(players[0], "pocket-legions.surrender")).status).toBe(409);
+    expect((await h.api.action(players[0], "skirmora.surrender")).status).toBe(409);
 
-    view = await h.api.act(players[0], "pocket-legions.rematch");
+    view = await h.api.act(players[0], "skirmora.rematch");
     expect(gameOf(view).phase).toBe("army");
     expect(gameOf(view).mine!.army).not.toBeNull();
     expect((await h.api.act(players[0], "lobby.end")).status).toBe("finished");
   });
 
   it("lobby.updateSettings: the host changes the map before the start (client plan §15.3)", async () => {
-    const h = createHttpHarness({ module: pocketLegionsModule });
+    const h = createHttpHarness({ module: skirmoraModule });
     const host = await h.api.createPlayer("Ann", { settings: { mapId: "arena" } });
     const ben = await h.api.joinPlayer(host.code, "Ben");
     await h.api.joinPlayer(host.code, "Cid");
@@ -97,13 +97,13 @@ describe("pocket-legions over HTTP", () => {
   });
 
   it("4 simultaneous submitArmy calls with write conflicts lose nothing", async () => {
-    const h = createHttpHarness({ module: pocketLegionsModule, repositoryLatencyMs: 2 });
+    const h = createHttpHarness({ module: skirmoraModule, repositoryLatencyMs: 2 });
     const players = await lobby(h, ["A", "B", "C", "D"], { mapId: "graveyard" });
-    for (const player of players) await h.api.act(player, "pocket-legions.pickRace", { raceId: "barbarians" });
+    for (const player of players) await h.api.act(player, "skirmora.pickRace", { raceId: "barbarians" });
 
     h.repository.forceConflicts(3);
     const results = await Promise.all(
-      players.map((player) => h.api.action(player, "pocket-legions.submitArmy", { stacks: [{ unitId: "orc", count: 10 }] }))
+      players.map((player) => h.api.action(player, "skirmora.submitArmy", { stacks: [{ unitId: "orc", count: 10 }] }))
     );
     expect(results.map((res) => res.status)).toEqual([200, 200, 200, 200]);
     const view = gameOf(await h.api.view(players[0]));
@@ -112,7 +112,7 @@ describe("pocket-legions over HTTP", () => {
   });
 
   it("answers 409 outdated for a session made with other game data, and lists the map in /info", async () => {
-    const h = createHttpHarness({ module: pocketLegionsModule });
+    const h = createHttpHarness({ module: skirmoraModule });
     const [ann, ben] = await lobby(h, ["Ann", "Ben"], { mapId: "arena", mode: "ffa", budget: 500 });
     expect((await h.api.info(ann.code)).body).toMatchObject({ mapId: "arena", mode: "ffa", budget: 500 });
     const view = await h.api.view(ann);
@@ -124,7 +124,7 @@ describe("pocket-legions over HTTP", () => {
       hostPlayerId: row.hostPlayerId,
       state: { ...row.state, settings: { ...row.state.settings, dataVersion: "1999.1.0" } },
     });
-    for (const [player, type] of [[ann, "pocket-legions.pickRace"], [ben, "lobby.leave"]] as const) {
+    for (const [player, type] of [[ann, "skirmora.pickRace"], [ben, "lobby.leave"]] as const) {
       const res = await h.api.action(player, type, { raceId: "elves" });
       expect(res.status).toBe(409);
       expect(res.body.error.code).toBe("outdated");
@@ -134,7 +134,7 @@ describe("pocket-legions over HTTP", () => {
   });
 
   it("refuses to start with a player count the map doesn't allow", async () => {
-    const h = createHttpHarness({ module: pocketLegionsModule });
+    const h = createHttpHarness({ module: skirmoraModule });
     const host = await h.api.createPlayer("Ann", { settings: { mapId: "river" } });
     await h.api.joinPlayer(host.code, "Ben");
     await h.api.joinPlayer(host.code, "Cid");
